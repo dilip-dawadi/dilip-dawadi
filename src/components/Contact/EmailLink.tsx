@@ -31,7 +31,6 @@ const messages = [
   'please-work-for-us',
   'help',
   'admin',
-  'or-I-really-like-your-website',
   'thanks',
 ];
 
@@ -62,10 +61,7 @@ type AnimationAction =
   | { type: 'PAUSE' }
   | { type: 'RESUME'; maxIdx: number };
 
-function animationReducer(
-  state: AnimationState,
-  action: AnimationAction,
-): AnimationState {
+function animationReducer(state: AnimationState, action: AnimationAction): AnimationState {
   switch (action.type) {
     case 'TICK': {
       let newIdx = state.idx;
@@ -144,8 +140,7 @@ export default function EmailLink({ loopMessage = false }: EmailLinkProps) {
   );
 
   // Use 'hi' as default message when reduced motion or paused with empty message
-  const displayMessage =
-    reducedMotion || state.message === '' ? 'hi' : state.message;
+  const displayMessage = reducedMotion || state.message === '' ? 'hi' : state.message;
   const isValid = validateText(displayMessage);
 
   const handlePause = () => dispatch({ type: 'PAUSE' });
@@ -175,11 +170,7 @@ export default function EmailLink({ loopMessage = false }: EmailLinkProps) {
   );
 
   return (
-    <div
-      className="contact-email-container"
-      onMouseEnter={handlePause}
-      onMouseLeave={handleResume}
-    >
+    <div className="contact-email-container" onMouseEnter={handlePause} onMouseLeave={handleResume}>
       {isValid ? (
         <a
           href={`mailto:${displayMessage}@dilipdawadi.com.np`}

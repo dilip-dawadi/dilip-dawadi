@@ -50,10 +50,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   icons: {
     icon: [
-      { url: '/images/favicon/favicon.ico' },
+      { url: '/favicon.ico', sizes: 'any' },
       { url: '/images/favicon/favicon.svg', type: 'image/svg+xml' },
     ],
     apple: '/images/favicon/favicon.png',
+    shortcut: '/favicon.ico',
   },
   openGraph: {
     type: 'website',

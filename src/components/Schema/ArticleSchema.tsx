@@ -9,7 +9,7 @@ interface ArticleSchemaProps {
 export default function ArticleSchema({ post }: ArticleSchemaProps) {
   const articleUrl = `${SITE_URL}/writing/${post.slug}`;
 
-  const authorImage = `${SITE_URL}/images/me.jpg`;
+  const authorImage = `${SITE_URL}/images/me.webp`;
 
   const articleData = {
     '@context': 'https://schema.org',

@@ -3,13 +3,6 @@
   "version": "4.1.0",
   "homepage": "https://dilipdawadi.com.np/",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/dilipdawadi/personal-site.git"
-  },
-  "engines": {
-    "node": ">=20.x"
-  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",

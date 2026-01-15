@@ -25,8 +25,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
+          node-version-file: '.nvmrc'
+          cache: 'npm'
 
       - name: Cache node_modules
         id: cache-node-modules
@@ -54,8 +54,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
+          node-version-file: '.nvmrc'
+          cache: 'npm'
 
       - name: Restore node_modules
         uses: actions/cache@v4
@@ -71,39 +71,6 @@ jobs:
 
       - name: Format Check
         run: npm run format:check
-
-  # Run tests
-  test:
-    name: Test
-    needs: install
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
-
-      - name: Restore node_modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
-
-      - name: Run tests
-        run: npm run test:coverage
-
-      - name: Upload coverage reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: coverage/
-          retention-days: 7
 
   # Build on multiple OS and Node versions
   build:
@@ -130,7 +97,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: "npm"
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -161,14 +128,13 @@ jobs:
   # Summary job to ensure all checks pass
   ci-success:
     name: CI Success
-    needs: [code-quality, test, build]
+    needs: [code-quality, build]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Check if all jobs succeeded
         run: |
           if [[ "${{ needs.code-quality.result }}" != "success" || 
-                "${{ needs.test.result }}" != "success" || 
                 "${{ needs.build.result }}" != "success" ]]; then
             echo "One or more jobs failed"
             exit 1

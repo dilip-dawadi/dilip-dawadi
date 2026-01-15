@@ -24,10 +24,15 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary',
     title: 'About Me - Dilip Dawadi',
-    description: 'Learn more about my tech stack, skills, and current focus areas.',
+    description:
+      'Learn more about my tech stack, skills, and current focus areas.',
   },
 };
 
-export default function StatsLayout({ children }: { children: React.ReactNode }) {
+export default function StatsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return <>{children}</>;
 }

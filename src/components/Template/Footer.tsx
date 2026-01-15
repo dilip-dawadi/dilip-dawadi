@@ -17,7 +17,11 @@ export default function Footer() {
             <p className="footer-role">Full-Stack Developer</p>
             <p className="footer-copyright">
               &copy; {new Date().getFullYear()} ·{' '}
-              <a href="https://dilipdawadi.com.np" target="_blank" rel="noopener noreferrer">
+              <a
+                href="https://dilipdawadi.com.np"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 Thank you!
               </a>
             </p>
@@ -37,7 +41,10 @@ export default function Footer() {
             </div>
           </nav>
 
-          <div className="footer-social" aria-labelledby="footer-social-heading">
+          <div
+            className="footer-social"
+            aria-labelledby="footer-social-heading"
+          >
             <h4 id="footer-social-heading" className="footer-social-label">
               Connect
             </h4>

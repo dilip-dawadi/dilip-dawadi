@@ -53,7 +53,9 @@ export default function ResumeNav() {
         }
 
         if (targetEntry) {
-          const sectionId = sections.find((s) => s.id === targetEntry.target.id);
+          const sectionId = sections.find(
+            (s) => s.id === targetEntry.target.id,
+          );
           if (sectionId) {
             setActiveSection(sectionId.id);
           }

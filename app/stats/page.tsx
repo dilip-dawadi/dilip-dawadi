@@ -39,7 +39,9 @@ export default function StatsPage() {
       <section className="stats-page">
         <header className="stats-header">
           <h1 className="stats-title">More About Me</h1>
-          <p className="stats-subtitle">My journey, interests, and what I'm working with</p>
+          <p className="stats-subtitle">
+            My journey, interests, and what I'm working with
+          </p>
         </header>
         <div className="stats-content">
           <section>
@@ -105,13 +107,16 @@ export default function StatsPage() {
             <h2 className="stats-section-title">Current Focus</h2>
             <div className="stats-list">
               <div className="stats-item">
-                <strong>Learning:</strong> Advanced system design and cloud architecture patterns
+                <strong>Learning:</strong> Advanced system design and cloud
+                architecture patterns
               </div>
               <div className="stats-item">
-                <strong>Building:</strong> Production-grade applications with focus on scalability
+                <strong>Building:</strong> Production-grade applications with
+                focus on scalability
               </div>
               <div className="stats-item">
-                <strong>Exploring:</strong> AI/ML integration in web applications
+                <strong>Exploring:</strong> AI/ML integration in web
+                applications
               </div>
             </div>
           </section>
@@ -122,8 +127,12 @@ export default function StatsPage() {
               <div className="stats-item">
                 📚 Reading tech blogs and staying updated with trends
               </div>
-              <div className="stats-item">🚀 Contributing to open-source projects</div>
-              <div className="stats-item">💡 Experimenting with new technologies</div>
+              <div className="stats-item">
+                🚀 Contributing to open-source projects
+              </div>
+              <div className="stats-item">
+                💡 Experimenting with new technologies
+              </div>
               <div className="stats-item">🎮 Gaming and tech documentaries</div>
             </div>
           </section>

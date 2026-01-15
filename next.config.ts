@@ -16,14 +16,12 @@ const nextConfig: NextConfig = {
   // Turbopack configuration (used in development)
   turbopack: {
     resolveExtensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
+    root: process.cwd(),
   },
 
   // Experimental features
   experimental: {
-    optimizePackageImports: [
-      '@fortawesome/react-fontawesome',
-      '@fortawesome/fontawesome-svg-core',
-    ],
+    optimizePackageImports: ['@fortawesome/react-fontawesome', '@fortawesome/fontawesome-svg-core'],
   },
 };
 

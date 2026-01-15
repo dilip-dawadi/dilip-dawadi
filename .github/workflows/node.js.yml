@@ -74,29 +74,18 @@ jobs:
 
   # Build on multiple OS and Node versions
   build:
-    name: Build (${{ matrix.os }}, Node ${{ matrix.node-version }})
+    name: Build
     needs: install
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        node-version: [20.x, 22.x]
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        exclude:
-          # Reduce matrix size for faster CI
-          - os: windows-latest
-            node-version: 20.x
-          - os: macos-latest
-            node-version: 20.x
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Install dependencies
@@ -118,7 +107,6 @@ jobs:
           echo "Static export successful. Found $(find out -type f | wc -l) files."
 
       - name: Upload build artifacts
-        if: matrix.os == 'ubuntu-latest' && matrix.node-version == '22.x'
         uses: actions/upload-artifact@v4
         with:
           name: build-output

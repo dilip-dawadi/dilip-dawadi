@@ -67,9 +67,9 @@ export async function GET() {
   const rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Michael D'Angelo - Writing</title>
+    <title>Dilip Dawadi - Writing</title>
     <link>${SITE_URL}/writing</link>
-    <description>Articles on AI security, LLM red teaming, and trust &amp; safety by Michael D'Angelo.</description>
+    <description>Articles on web development, programming, and technology by Dilip Dawadi.</description>
     <language>en-us</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
     <atom:link href="${SITE_URL}/feed.xml" rel="self" type="application/rss+xml"/>${rssItems}

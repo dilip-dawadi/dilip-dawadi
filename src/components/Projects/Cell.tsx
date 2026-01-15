@@ -1,5 +1,8 @@
+'use client';
+
 import dayjs from 'dayjs';
 import Image from 'next/image';
+import { useState } from 'react';
 
 import type { Project } from '@/data/projects';
 import { PROJECT_IMAGE } from '@/lib/utils';
@@ -10,20 +13,43 @@ interface CellProps {
 
 export default function Cell({ data }: CellProps) {
   const { title, subtitle, link, image, date, desc, tech, featured } = data;
+  const [imageError, setImageError] = useState(false);
 
   const hasLink = Boolean(link);
 
   const cardContent = (
     <>
       <div className="project-card-image">
-        <Image
-          src={image}
-          alt={title}
-          width={PROJECT_IMAGE.width}
-          height={PROJECT_IMAGE.height}
-          sizes="(max-width: 600px) 100vw, 50vw"
-        />
-        <div className="project-card-overlay" />
+        {image && !imageError ? (
+          <>
+            <Image
+              src={image}
+              alt={title}
+              width={PROJECT_IMAGE.width}
+              height={PROJECT_IMAGE.height}
+              sizes="(max-width: 600px) 100vw, 50vw"
+              onError={() => setImageError(true)}
+            />
+            <div className="project-card-overlay" />
+          </>
+        ) : (
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              minHeight: '200px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'var(--color-bg-secondary)',
+              color: 'var(--color-text-muted)',
+              fontStyle: 'italic',
+              fontSize: '0.9rem',
+            }}
+          >
+            No image available
+          </div>
+        )}
       </div>
 
       <div className="project-card-content">

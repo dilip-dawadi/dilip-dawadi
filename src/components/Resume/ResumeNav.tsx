@@ -6,6 +6,7 @@ const sections = [
   { name: 'Experience', id: 'experience' },
   { name: 'Education', id: 'education' },
   { name: 'Skills', id: 'skills' },
+  { name: 'Projects', id: 'projects' },
   { name: 'References', id: 'references' },
 ] as const;
 
@@ -52,9 +53,7 @@ export default function ResumeNav() {
         }
 
         if (targetEntry) {
-          const sectionId = sections.find(
-            (s) => s.id === targetEntry.target.id,
-          );
+          const sectionId = sections.find((s) => s.id === targetEntry.target.id);
           if (sectionId) {
             setActiveSection(sectionId.id);
           }

@@ -1,0 +1,60 @@
+{
+  "name": "personal-site",
+  "version": "4.1.0",
+  "homepage": "https://dilipdawadi.com.np/",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dilipdawadi/personal-site.git"
+  },
+  "engines": {
+    "node": ">=20.x"
+  },
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "biome check .",
+    "type-check": "tsc --noEmit",
+    "format": "biome format --write . && prettier --write \"**/*.{md,css,scss}\"",
+    "format:check": "biome format . && prettier --check \"**/*.{md,css,scss}\"",
+    "predeploy": "npm run build",
+    "analyze": "ANALYZE=true npm run build"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^7.1.0",
+    "@fortawesome/free-brands-svg-icons": "^7.1.0",
+    "@fortawesome/free-regular-svg-icons": "^7.1.0",
+    "@fortawesome/react-fontawesome": "^3.1.1",
+    "@next/third-parties": "^16.1.1",
+    "@tailwindcss/postcss": "^4.1.18",
+    "dayjs": "^1.11.19",
+    "gray-matter": "^4.0.3",
+    "markdown-to-jsx": "^9.5.7",
+    "next": "^16.1.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "tailwindcss": "^4.1.18"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.11",
+    "@next/bundle-analyzer": "^16.1.1",
+    "@types/node": "^25.0.8",
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3",
+    "prettier": "^3.7.4",
+    "typescript": "^5.9.3"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

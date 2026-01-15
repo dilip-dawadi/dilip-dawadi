@@ -48,6 +48,13 @@ export const metadata: Metadata = {
   authors: [{ name: AUTHOR_NAME }],
   creator: AUTHOR_NAME,
   metadataBase: new URL(SITE_URL),
+  icons: {
+    icon: [
+      { url: '/images/favicon/favicon.ico' },
+      { url: '/images/favicon/favicon.svg', type: 'image/svg+xml' },
+    ],
+    apple: '/images/favicon/favicon.png',
+  },
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -57,7 +64,7 @@ export const metadata: Metadata = {
     description: siteDescription,
     images: [
       {
-        url: '/images/me.HEIC',
+        url: '/images/me.jpg',
         width: 1200,
         height: 630,
         alt: AUTHOR_NAME,
@@ -70,7 +77,7 @@ export const metadata: Metadata = {
     creator: TWITTER_HANDLE,
     title: AUTHOR_NAME,
     description: siteDescription,
-    images: ['/images/me.HEIC'],
+    images: ['/images/me.jpg'],
   },
   robots: {
     index: true,

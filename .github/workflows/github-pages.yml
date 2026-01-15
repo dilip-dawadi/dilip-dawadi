@@ -4,7 +4,7 @@ name: Deploy to GitHub Pages
 on:
   # Runs on pushes targeting the main branch
   push:
-    branches: ["main"]
+    branches: ['main']
   # Allows manual deployment from Actions tab
   workflow_dispatch:
 
@@ -16,7 +16,7 @@ permissions:
 
 # Allow only one concurrent deployment
 concurrency:
-  group: "pages"
+  group: 'pages'
   cancel-in-progress: false
 
 jobs:
@@ -35,14 +35,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
+          node-version-file: '.nvmrc'
+          cache: 'npm'
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
           # Automatically inject basePath in Next.js config
           static_site_generator: next
+          enablement: true
 
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -73,7 +74,7 @@ jobs:
           fi
           echo "Build successful. Generated $(find out -type f | wc -l) files."
           du -sh out/
-          
+
       - name: Ensure .nojekyll exists in output
         run: |
           if [ ! -f "out/.nojekyll" ]; then

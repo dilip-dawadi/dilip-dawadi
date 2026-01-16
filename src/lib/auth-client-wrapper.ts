@@ -16,7 +16,8 @@ export async function getAuthClient() {
       const { createAuthClient } = await import('better-auth/react');
 
       authClientInstance = createAuthClient({
-        baseURL: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
+        baseURL:
+          typeof window !== 'undefined' ? process.env.NEXT_PUBLIC_APP_URL : 'http://localhost:3000',
         basePath: '/api/auth',
         fetchOptions: {
           onError(context) {

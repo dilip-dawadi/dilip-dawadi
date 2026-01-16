@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     'Key projects and achievements from Dilip Dawadi including municipal platforms and cloud deployments.',
 };
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600; // Revalidate every hour
 
 async function getProjects() {
   try {

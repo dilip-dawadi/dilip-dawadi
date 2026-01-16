@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import PageWrapper from '@/components/Template/PageWrapper';
 import { Skeleton } from '@/components/ui/skeleton';
-import writing from '@/data/writing';
 import { formatDate } from '@/lib/utils';
 
 interface UnifiedItem {
@@ -70,15 +69,37 @@ function WritingItem({ item, showDate = true }: WritingItemProps) {
 export default function WritingPage() {
   const [loading, setLoading] = useState(true);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     const fetchPosts = async () => {
       try {
         const res = await fetch('/api/blog?published=true');
+        if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
         setBlogPosts(data);
+        setError(false);
       } catch (error) {
         console.error('Error fetching blog posts:', error);
+        setError(true);
+        // Fallback to static data only when API fails
+        import('@/data/writing').then((module) => {
+          const writingData = module.default;
+          // Convert static data to BlogPost format
+          const fallbackPosts: BlogPost[] = writingData.map((item, index) => ({
+            id: -(index + 1), // Negative IDs to distinguish from real posts
+            slug: item.url.replace('/writing/', ''),
+            title: item.title,
+            description: item.description,
+            content: '',
+            coverImage: null,
+            published: true,
+            createdAt: item.date,
+            updatedAt: item.date,
+            publishedAt: item.date,
+          }));
+          setBlogPosts(fallbackPosts);
+        });
       } finally {
         setLoading(false);
       }
@@ -87,7 +108,7 @@ export default function WritingPage() {
   }, []);
 
   // Convert database posts to unified format
-  const internalItems: UnifiedItem[] = blogPosts
+  const items: UnifiedItem[] = blogPosts
     .map((post) => {
       const date = post.publishedAt || post.createdAt;
       // Validate date
@@ -103,18 +124,9 @@ export default function WritingPage() {
     })
     .filter((item) => item.date); // Only include items with valid dates
 
-  // Get external articles from data file
-  const externalItems: UnifiedItem[] = writing.map((item) => ({
-    ...item,
-    isExternal: true,
-  }));
-
-  // Merge and sort all items
-  const allItems = [...internalItems, ...externalItems];
-  const dated = allItems
-    .filter((item) => item.date)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  const undated = allItems.filter((item) => !item.date);
+  // Sort all items by date
+  const dated = items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const undated = items.filter((item) => !item.date);
 
   return (
     <PageWrapper>
@@ -144,6 +156,21 @@ export default function WritingPage() {
           </div>
         ) : (
           <div className="writing-list">
+            {error && (
+              <div
+                style={{
+                  padding: '1rem',
+                  marginBottom: '1rem',
+                  backgroundColor: 'var(--color-bg-alt)',
+                  borderRadius: '0.5rem',
+                  border: '1px solid var(--color-border)',
+                }}
+              >
+                <p style={{ color: 'var(--color-fg-light)', fontSize: '0.875rem' }}>
+                  ⚠️ Using cached content - API temporarily unavailable
+                </p>
+              </div>
+            )}
             {dated.map((item) => (
               <WritingItem key={item.url} item={item} />
             ))}

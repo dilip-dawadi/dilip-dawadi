@@ -6,11 +6,14 @@ export interface WritingItem {
 }
 
 const data: WritingItem[] = [
+  // Add your blog posts here
+  // Example:
   {
-    title: 'Your Blog Post Title',
-    url: 'https://yourblog.com/post-url',
+    title: 'About My Journey into Web Development',
+    url: 'https://dilipdawadi.com.np/writing',
     date: '2025-01-15',
-    description: 'Brief description of your blog post.',
+    description:
+      'Sharing my experiences and challenges as I ventured into the world of web development.',
   },
 ];
 

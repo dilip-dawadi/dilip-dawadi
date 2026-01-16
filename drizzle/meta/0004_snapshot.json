@@ -1,6 +1,6 @@
 {
-  "id": "a929cc35-102b-45d8-8614-abeb993cb3fd",
-  "prevId": "8f0791eb-d27b-44c3-818d-4baaf4419486",
+  "id": "de365aa9-ce43-463f-91e8-9a10e913395b",
+  "prevId": "9785bfcf-753e-4a5e-81fe-f8ef05326ead",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -32,7 +32,7 @@
           "name": "updated_by",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "indexes": {},
@@ -47,7 +47,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -304,7 +304,7 @@
           "name": "author_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "indexes": {},
@@ -319,7 +319,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },

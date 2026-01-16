@@ -1,73 +1,27 @@
 'use client';
 
-import { getAuthClient } from '@/lib/auth-client-wrapper';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 
-export const dynamic = 'force-dynamic';
-
 export default function AdminDashboard() {
+  const { data: session, status } = useSession();
   const router = useRouter();
-  const [session, setSession] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    let isMounted = true;
-    const abortController = new AbortController();
+    if (status === 'unauthenticated') {
+      router.replace('/admin');
+    } else if (status === 'authenticated' && session.user?.role !== 'admin') {
+      router.replace('/admin');
+    }
+  }, [status, session, router]);
 
-    const checkSession = async () => {
-      try {
-        const authClient = await getAuthClient();
-        const { data } = await authClient.getSession();
-        console.log('Session data:', data);
-        if (!isMounted) return;
-
-        if (!data) {
-          router.replace('/admin');
-          return;
-        }
-
-        // Check admin status
-        const res = await fetch('/api/auth/check-admin', {
-          signal: abortController.signal,
-        });
-
-        if (!isMounted) return;
-        const adminData = await res.json();
-
-        if (!adminData.isAdmin) {
-          router.replace('/admin');
-          return;
-        }
-
-        if (isMounted) {
-          setIsAdmin(true);
-          setSession(data);
-          setLoading(false);
-        }
-      } catch (error: any) {
-        if (error.name === 'AbortError' || !isMounted) return;
-        router.replace('/admin');
-      }
-    };
-
-    checkSession();
-
-    return () => {
-      isMounted = false;
-      abortController.abort();
-    };
-  }, [router]);
-
-  const handleSignOut = async () => {
-    const authClient = await getAuthClient();
-    await authClient.signOut();
-    router.push('/admin');
+  const handleSignOut = () => {
+    signOut({ callbackUrl: '/admin' });
   };
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <div
         className="flex min-h-screen items-center justify-center"
@@ -80,7 +34,7 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!session || !isAdmin) {
+  if (status === 'unauthenticated' || session?.user?.role !== 'admin') {
     return null;
   }
 
@@ -126,15 +80,15 @@ export default function AdminDashboard() {
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                {session.user.image && (
+                {session?.user?.image && (
                   <img
                     src={session.user.image}
-                    alt={session.user.name}
+                    alt={session.user.name || 'User'}
                     className="h-8 w-8 rounded-full"
                   />
                 )}
                 <span className="text-sm" style={{ color: 'var(--color-fg)' }}>
-                  {session.user.name}
+                  {session?.user?.name}
                 </span>
               </div>
               <button

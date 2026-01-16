@@ -36,14 +36,14 @@ export async function POST(request: Request) {
         id: 'default',
         content,
         updatedAt: new Date(),
-        updatedBy: session.user.id,
+        updatedBy: session?.user?.id || null,
       })
       .onConflictDoUpdate({
         target: aboutContent.id,
         set: {
           content,
           updatedAt: new Date(),
-          updatedBy: session.user.id,
+          updatedBy: session?.user?.id || null,
         },
       })
       .returning();

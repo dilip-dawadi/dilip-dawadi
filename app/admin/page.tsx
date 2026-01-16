@@ -1,112 +1,33 @@
 'use client';
 
-import { getAuthClient } from '@/lib/auth-client-wrapper';
+import { signIn } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-
-export const dynamic = 'force-dynamic';
+import { useEffect } from 'react';
 
 export default function AdminPage() {
+  const { data: session, status } = useSession();
   const router = useRouter();
-  const [session, setSession] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    const abortController = new AbortController();
-
-    const checkSession = async () => {
-      try {
-        const authClient = await getAuthClient();
-        const { data } = await authClient.getSession();
-        if (!isMounted) return;
-
-        if (data) {
-          // Check if user is admin before redirecting
-          const res = await fetch('/api/auth/check-admin', {
-            signal: abortController.signal,
-          });
-
-          if (!isMounted) return;
-          const adminData = await res.json();
-
-          if (adminData.isAdmin) {
-            router.replace('/admin/dashboard');
-            return;
-          }
-
-          // User is logged in but not admin - show error message
-          setSession({ ...data, error: true });
-          setLoading(false);
-          return;
-        }
-
-        setLoading(false);
-      } catch (error: any) {
-        console.error('[Admin Page] Error name:', error?.name);
-        if (error.name === 'AbortError' || !isMounted) return;
-        if (isMounted) {
-          setError(error?.message || 'Unknown error occurred');
-          setLoading(false);
-        }
-      }
-    };
-
-    checkSession();
-
-    return () => {
-      isMounted = false;
-      abortController.abort();
-    };
-  }, [router]);
-
-  // Show error state
-  if (error) {
-    return (
-      <div
-        className="flex min-h-screen items-center justify-center"
-        style={{ backgroundColor: 'var(--color-bg)' }}
-      >
-        <div
-          className="w-full max-w-md space-y-8 rounded-lg p-8 shadow-lg"
-          style={{
-            backgroundColor: 'var(--color-bg-alt)',
-            border: '1px solid var(--color-border)',
-          }}
-        >
-          <div className="text-center">
-            <h2 className="text-2xl font-bold" style={{ color: 'var(--color-fg)' }}>
-              Authentication Error
-            </h2>
-            <p className="mt-4" style={{ color: 'var(--color-fg-muted)' }}>
-              {error}
-            </p>
-            <p className="mt-2 text-sm" style={{ color: 'var(--color-fg-muted)' }}>
-              Check the browser console for more details.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const handleGoogleSignIn = async () => {
-    const authClient = await getAuthClient();
-    await authClient.signIn.social({
-      provider: 'google',
-      callbackURL: '/admin/dashboard',
-    });
-  };
 
   const handleSignOut = async () => {
-    const authClient = await getAuthClient();
-    await authClient.signOut();
-    setSession(null);
-    setLoading(false);
+    const { signOut } = await import('next-auth/react');
+    signOut({ callbackUrl: '/admin' });
   };
 
-  if (loading || (session && !session.error)) {
+  useEffect(() => {
+    if (status === 'authenticated') {
+      // Check if user is admin
+      if (session.user?.role === 'admin') {
+        router.replace('/admin/dashboard');
+      }
+    }
+  }, [status, session, router]);
+
+  const handleGoogleSignIn = () => {
+    signIn('google', { callbackUrl: '/admin/dashboard' });
+  };
+
+  if (status === 'loading') {
     return (
       <div
         className="flex min-h-screen items-center justify-center"
@@ -120,7 +41,7 @@ export default function AdminPage() {
   }
 
   // User is logged in but not admin
-  if (session && session.error) {
+  if (status === 'authenticated' && session.user?.role !== 'admin') {
     return (
       <div
         className="flex min-h-screen items-center justify-center"

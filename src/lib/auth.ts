@@ -1,22 +1,41 @@
-import { betterAuth } from 'better-auth';
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import NextAuth from 'next-auth';
+import Google from 'next-auth/providers/google';
+import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { db } from '@/db';
+import { users, sessions, accounts, verificationTokens } from '@/db/schema';
 
-export const auth = betterAuth({
-  database: drizzleAdapter(db, {
-    provider: 'pg',
+export const { handlers, signIn, signOut, auth } = NextAuth({
+  adapter: DrizzleAdapter(db, {
+    usersTable: users,
+    accountsTable: accounts,
+    sessionsTable: sessions,
+    verificationTokensTable: verificationTokens,
   }),
-  baseURL: process.env.BETTER_AUTH_URL,
-  secret: process.env.BETTER_AUTH_SECRET,
-  trustedOrigins: [
-    'http://localhost:3000',
-    'https://www.dilipdawadi.com.np',
-    process.env.NEXT_PUBLIC_APP_URL as string,
+  providers: [
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
   ],
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+  callbacks: {
+    async session({ session, user }) {
+      if (session.user) {
+        session.user.id = user.id;
+        session.user.role = user.role || 'user';
+      }
+      return session;
+    },
+    authorized({ auth, request }) {
+      const { pathname } = request.nextUrl;
+      const role = auth?.user?.role;
+      if (pathname.startsWith('/admin')) {
+        return role === 'admin';
+      }
+      return true;
     },
   },
+  session: {
+    strategy: 'database',
+  },
+  trustHost: true,
 });

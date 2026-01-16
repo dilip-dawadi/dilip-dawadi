@@ -58,7 +58,7 @@ export async function POST(request: Request) {
         coverImage,
         published: published || false,
         publishedAt: published ? new Date() : null,
-        authorId: session.user.id,
+        authorId: session?.user?.id || null,
       })
       .returning();
 

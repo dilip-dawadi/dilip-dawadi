@@ -1,6 +1,6 @@
 'use client';
 
-import { getAuthClient } from '@/lib/auth-client-wrapper';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -18,64 +18,33 @@ export default function AdminLayout({
   backLink = '/admin/dashboard',
 }: AdminLayoutProps) {
   const router = useRouter();
-  const [session, setSession] = useState<any>(null);
+  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    let isMounted = true;
-    const abortController = new AbortController();
+    if (status === 'unauthenticated') {
+      router.replace('/admin');
+      return;
+    }
 
-    const checkSession = async () => {
-      try {
-        const authClient = await getAuthClient();
-        const { data } = await authClient.getSession();
-        if (!isMounted) return;
-
-        if (!data) {
-          router.replace('/admin');
-          return;
-        }
-
-        // Check if user is admin via API
-        const res = await fetch('/api/auth/check-admin', {
-          signal: abortController.signal,
-        });
-
-        if (!isMounted) return;
-        const adminData = await res.json();
-
-        if (!adminData.isAdmin) {
-          router.replace('/admin');
-          return;
-        }
-
-        if (isMounted) {
-          setIsAdmin(true);
-          setSession(data);
-          setLoading(false);
-        }
-      } catch (error: any) {
-        if (error.name === 'AbortError' || !isMounted) return;
+    if (status === 'authenticated') {
+      // Check if user is admin
+      if (session?.user?.role === 'admin') {
+        setIsAdmin(true);
+        setLoading(false);
+      } else {
         router.replace('/admin');
       }
-    };
-
-    checkSession();
-
-    return () => {
-      isMounted = false;
-      abortController.abort();
-    };
-  }, [router]);
+    }
+  }, [status, session, router]);
 
   const handleSignOut = async () => {
-    const authClient = await getAuthClient();
-    await authClient.signOut();
-    router.push('/admin');
+    const { signOut } = await import('next-auth/react');
+    signOut({ callbackUrl: '/admin' });
   };
 
-  if (loading) {
+  if (status === 'loading' || loading) {
     return (
       <div
         className="flex min-h-screen items-center justify-center"
@@ -88,7 +57,7 @@ export default function AdminLayout({
     );
   }
 
-  if (!session || !isAdmin) {
+  if (!session || !session.user || !isAdmin) {
     return null;
   }
 
@@ -120,7 +89,7 @@ export default function AdminLayout({
               {session.user.image && (
                 <img
                   src={session.user.image}
-                  alt={session.user.name}
+                  alt={session.user.name || 'User'}
                   className="h-8 w-8 rounded-full ring-2"
                   style={{ borderColor: 'var(--color-border)' }}
                 />

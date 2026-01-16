@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     'Learn about Dilip Dawadi - Full-Stack Software Developer with 3.5+ years of experience building scalable web applications.',
 };
 
-export const revalidate = 3600; // Revalidate every hour
+export const revalidate = 86400; // Revalidate every 24 hours
 
 const countWords = (str: string) => str.split(/\s+/).filter((word) => word !== '').length;
 

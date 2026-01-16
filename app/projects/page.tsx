@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     'Key projects and achievements from Dilip Dawadi including municipal platforms and cloud deployments.',
 };
 
-export const revalidate = 3600; // Revalidate every hour
+export const revalidate = 86400; // Revalidate every 24 hours
 
 async function getProjects() {
   try {

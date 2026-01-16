@@ -29,7 +29,7 @@ const nextConfig: NextConfig = {
         fs: false,
         os: false,
       };
-      
+
       // Define process.env variables to prevent build-time inlining issues
       config.plugins.push(
         new webpack.DefinePlugin({
@@ -39,7 +39,7 @@ const nextConfig: NextConfig = {
           'process.env.BETTER_AUTH_TELEMETRY_ID': JSON.stringify(undefined),
           'process.env.NODE_ENV': JSON.stringify('production'),
           'process.env.PACKAGE_VERSION': JSON.stringify('0.0.0'),
-        })
+        }),
       );
     }
     return config;

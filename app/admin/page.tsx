@@ -1,6 +1,6 @@
 'use client';
 
-import { authClient } from '@/lib/auth-client';
+import { getAuthClient } from '@/lib/auth-client-wrapper';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -17,6 +17,8 @@ export default function AdminPage() {
 
     const checkSession = async () => {
       try {
+        console.log('[Admin Page] Getting auth client...');
+        const authClient = await getAuthClient();
         console.log('[Admin Page] Checking session...');
         const { data } = await authClient.getSession();
         console.log('[Admin Page] Session data:', data);
@@ -94,6 +96,7 @@ export default function AdminPage() {
   }
 
   const handleGoogleSignIn = async () => {
+    const authClient = await getAuthClient();
     await authClient.signIn.social({
       provider: 'google',
       callbackURL: '/admin/dashboard',
@@ -101,6 +104,7 @@ export default function AdminPage() {
   };
 
   const handleSignOut = async () => {
+    const authClient = await getAuthClient();
     await authClient.signOut();
     setSession(null);
     setLoading(false);

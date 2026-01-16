@@ -15,6 +15,18 @@ const nextConfig: NextConfig = {
   // Note: trailingSlash disabled because it conflicts with catch-all API routes
   // trailingSlash: true,
 
+  // Webpack configuration for better-auth compatibility
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Polyfill process.env for client-side better-auth code
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        process: false,
+      };
+    }
+    return config;
+  },
+
   // Turbopack configuration (used in development)
   turbopack: {
     resolveExtensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],

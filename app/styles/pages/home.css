@@ -189,13 +189,13 @@
 /* Mobile */
 @media (max-width: 640px) {
   .hero {
-    padding: 3rem 1rem 2.5rem;
+    padding: 3.5rem 1.25rem 3rem;
   }
 
   .hero-avatar {
-    width: 120px;
-    height: 120px;
-    margin-bottom: 1.5rem;
+    width: 130px;
+    height: 130px;
+    margin-bottom: 1.7rem;
   }
 
   .hero-name {
@@ -203,8 +203,8 @@
   }
 
   .hero-tagline {
-    font-size: var(--text-base);
-    line-height: 1.6;
+    font-size: var(--text-lg);
+    line-height: 1.8;
   }
 
   .hero-tagline br {
@@ -213,15 +213,6 @@
 
   .hero-chips {
     gap: 0.5rem;
-  }
-
-  .hero-cta {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .hero-cta .button {
-    width: 100%;
   }
 
   .hero-chip {

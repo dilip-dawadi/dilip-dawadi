@@ -19,9 +19,19 @@
   padding: 2rem 1.5rem;
 }
 
+/* Home page: remove max-width and padding for full-width hero */
+.page-container:has(.hero) .page-main {
+  max-width: none;
+  padding: 0;
+}
+
 @media screen and (min-width: 736px) {
   .page-main {
     padding: 3rem 2rem;
+  }
+
+  .page-container:has(.hero) .page-main {
+    padding: 0;
   }
 }
 

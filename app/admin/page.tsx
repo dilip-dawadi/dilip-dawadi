@@ -48,7 +48,7 @@ export default function AdminPage() {
         style={{ backgroundColor: 'var(--color-bg)' }}
       >
         <div
-          className="w-full max-w-md space-y-8 rounded-lg p-8 shadow-lg"
+          className="w-full max-sm:max-w-sm max-w-md space-y-8 rounded-lg p-8 shadow-lg"
           style={{
             backgroundColor: 'var(--color-bg-alt)',
             border: '1px solid var(--color-border)',
@@ -116,7 +116,7 @@ export default function AdminPage() {
       style={{ backgroundColor: 'var(--color-bg)' }}
     >
       <div
-        className="w-full max-w-md space-y-8 rounded-lg p-8 shadow-lg"
+        className="w-full max-sm:max-w-sm max-w-md space-y-8 rounded-lg p-8 shadow-lg"
         style={{ backgroundColor: 'var(--color-bg-alt)', border: '1px solid var(--color-border)' }}
       >
         <div className="text-center">

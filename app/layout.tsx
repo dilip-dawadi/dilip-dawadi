@@ -105,6 +105,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `
 (function () {
   if (typeof window !== 'undefined') {
+    // Define Turbopack's internal environment variable helper
+    window._process_env_key = undefined;
+    globalThis._process_env_key = undefined;
+    
     const envProxy = new Proxy(
       {
         NODE_ENV: 'production',

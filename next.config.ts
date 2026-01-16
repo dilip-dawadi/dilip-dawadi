@@ -56,11 +56,11 @@ const nextConfig: NextConfig = {
 
   // Environment variables configuration for client-side
   env: {
-    BETTER_AUTH_SECRET: undefined,
-    AUTH_SECRET: undefined,
-    BETTER_AUTH_TELEMETRY: undefined,
-    BETTER_AUTH_TELEMETRY_ID: undefined,
-    BETTER_AUTH_URL: undefined,
+    BETTER_AUTH_SECRET: '',
+    AUTH_SECRET: '',
+    BETTER_AUTH_TELEMETRY: '',
+    BETTER_AUTH_TELEMETRY_ID: '',
+    BETTER_AUTH_URL: '',
     PACKAGE_VERSION: '0.0.0',
   },
 

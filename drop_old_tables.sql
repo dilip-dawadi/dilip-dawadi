@@ -1,8 +1,0 @@
--- Drop all existing auth tables to start fresh with NextAuth
-DROP TABLE IF EXISTS "verification" CASCADE;
-DROP TABLE IF EXISTS "session" CASCADE;
-DROP TABLE IF EXISTS "account" CASCADE;
-DROP TABLE IF EXISTS "user" CASCADE;
-DROP TABLE IF EXISTS "users" CASCADE;
-DROP TABLE IF EXISTS "verificationToken" CASCADE;
-DROP TABLE IF EXISTS "authenticator" CASCADE;

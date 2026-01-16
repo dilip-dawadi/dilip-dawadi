@@ -16,10 +16,7 @@ export default function Footer() {
             <h3>Dilip Dawadi</h3>
             <p className="footer-role">Full-Stack Developer</p>
             <p className="footer-copyright">
-              &copy; {new Date().getFullYear()} ·{' '}
-              <a href="https://dilipdawadi.com.np/admin" target="_blank" rel="noopener noreferrer">
-                Thank you!
-              </a>
+              &copy; {new Date().getFullYear()} · <Link href="/admin">Thank you!</Link>
             </p>
           </div>
         </div>

@@ -51,6 +51,16 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
 
+  // Environment variables configuration for client-side
+  env: {
+    BETTER_AUTH_SECRET: undefined,
+    AUTH_SECRET: undefined,
+    BETTER_AUTH_TELEMETRY: undefined,
+    BETTER_AUTH_TELEMETRY_ID: undefined,
+    BETTER_AUTH_URL: undefined,
+    PACKAGE_VERSION: '0.0.0',
+  },
+
   // Experimental features
   experimental: {
     optimizePackageImports: ['@fortawesome/react-fontawesome', '@fortawesome/fontawesome-svg-core'],

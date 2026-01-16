@@ -1,6 +1,6 @@
 'use client';
 
-import { authClient } from '@/lib/auth-client';
+import { getAuthClient } from '@/lib/auth-client-wrapper';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -28,6 +28,7 @@ export default function AdminLayout({
 
     const checkSession = async () => {
       try {
+        const authClient = await getAuthClient();
         const { data } = await authClient.getSession();
         if (!isMounted) return;
 
@@ -69,6 +70,7 @@ export default function AdminLayout({
   }, [router]);
 
   const handleSignOut = async () => {
+    const authClient = await getAuthClient();
     await authClient.signOut();
     router.push('/admin');
   };

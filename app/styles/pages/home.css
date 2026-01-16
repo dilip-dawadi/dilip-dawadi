@@ -215,6 +215,15 @@
     gap: 0.5rem;
   }
 
+  /* .hero-cta {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .hero-cta .button {
+    width: 100%;
+  } */
+
   .hero-chip {
     font-size: var(--text-xs);
     padding: 0.4rem 0.875rem;

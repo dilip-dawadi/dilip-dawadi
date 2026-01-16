@@ -1,10 +1,26 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import type { Metadata } from 'next';
+
 import PageWrapper from '@/components/Template/PageWrapper';
-import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/utils';
+import { db } from '@/db';
+import { blogPosts } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import writingData from '@/data/writing';
+
+export const metadata: Metadata = {
+  title: 'Writing',
+  description:
+    'Articles, tutorials, and thoughts on software development, web technologies, and engineering practices by Dilip Dawadi.',
+  openGraph: {
+    title: 'Writing - Dilip Dawadi',
+    description:
+      'Articles, tutorials, and thoughts on software development, web technologies, and engineering practices.',
+    type: 'website',
+  },
+};
+
+export const revalidate = 3600; // Revalidate every hour
 
 interface UnifiedItem {
   title: string;
@@ -66,59 +82,44 @@ function WritingItem({ item, showDate = true }: WritingItemProps) {
   );
 }
 
-export default function WritingPage() {
-  const [loading, setLoading] = useState(true);
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
-  const [error, setError] = useState(false);
+async function getBlogPosts() {
+  try {
+    const posts = await db.select().from(blogPosts).where(eq(blogPosts.published, true));
+    return posts;
+  } catch (error) {
+    console.error('Error fetching blog posts:', error);
+    // Fallback to static data if database query fails
+    return writingData.map((item, index) => ({
+      id: -(index + 1),
+      slug: item.url.replace('/writing/', ''),
+      title: item.title,
+      description: item.description,
+      content: '',
+      coverImage: null,
+      published: true,
+      createdAt: item.date,
+      updatedAt: item.date,
+      publishedAt: item.date,
+    }));
+  }
+}
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const res = await fetch('/api/blog?published=true');
-        if (!res.ok) throw new Error('Failed to fetch');
-        const data = await res.json();
-        setBlogPosts(data);
-        setError(false);
-      } catch (error) {
-        console.error('Error fetching blog posts:', error);
-        setError(true);
-        // Fallback to static data only when API fails
-        import('@/data/writing').then((module) => {
-          const writingData = module.default;
-          // Convert static data to BlogPost format
-          const fallbackPosts: BlogPost[] = writingData.map((item, index) => ({
-            id: -(index + 1), // Negative IDs to distinguish from real posts
-            slug: item.url.replace('/writing/', ''),
-            title: item.title,
-            description: item.description,
-            content: '',
-            coverImage: null,
-            published: true,
-            createdAt: item.date,
-            updatedAt: item.date,
-            publishedAt: item.date,
-          }));
-          setBlogPosts(fallbackPosts);
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPosts();
-  }, []);
+export default async function WritingPage() {
+  const posts = await getBlogPosts();
 
   // Convert database posts to unified format
-  const items: UnifiedItem[] = blogPosts
+  const items: UnifiedItem[] = posts
     .map((post) => {
       const date = post.publishedAt || post.createdAt;
-      // Validate date
+      // Validate and convert date
       const isValidDate = date && !isNaN(new Date(date).getTime());
+      const dateString = isValidDate ? new Date(date).toISOString() : '';
 
       return {
         title: post.title,
         url: `/writing/${post.slug}`,
-        date: isValidDate ? date : '',
-        description: post.description,
+        date: dateString,
+        description: post.description || '',
         isExternal: false,
       };
     })
@@ -140,51 +141,20 @@ export default function WritingPage() {
           </div>
         </header>
 
-        {loading ? (
-          <div className="writing-list">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div
-                key={i}
-                className="writing-item"
-                style={{ padding: '1.5rem 0', borderBottom: '1px solid var(--color-border)' }}
-              >
-                <Skeleton className="h-7 w-3/4 mb-2" />
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="writing-list">
-            {error && (
-              <div
-                style={{
-                  padding: '1rem',
-                  marginBottom: '1rem',
-                  backgroundColor: 'var(--color-bg-alt)',
-                  borderRadius: '0.5rem',
-                  border: '1px solid var(--color-border)',
-                }}
-              >
-                <p style={{ color: 'var(--color-fg-light)', fontSize: '0.875rem' }}>
-                  ⚠️ Using cached content - API temporarily unavailable
-                </p>
-              </div>
-            )}
-            {dated.map((item) => (
-              <WritingItem key={item.url} item={item} />
-            ))}
+        <div className="writing-list">
+          {dated.map((item) => (
+            <WritingItem key={item.url} item={item} />
+          ))}
 
-            {undated.length > 0 && (
-              <>
-                <div className="writing-section-label">Guides</div>
-                {undated.map((item) => (
-                  <WritingItem key={item.url} item={item} showDate={false} />
-                ))}
-              </>
-            )}
-          </div>
-        )}
+          {undated.length > 0 && (
+            <>
+              <div className="writing-section-label">Guides</div>
+              {undated.map((item) => (
+                <WritingItem key={item.url} item={item} showDate={false} />
+              ))}
+            </>
+          )}
+        </div>
       </article>
     </PageWrapper>
   );

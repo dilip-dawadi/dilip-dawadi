@@ -1,94 +1,83 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import Markdown from 'markdown-to-jsx';
 import Image from 'next/image';
-import { useParams, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { ArticleSchema } from '@/components/Schema';
 import PageWrapper from '@/components/Template/PageWrapper';
 import { formatDate } from '@/lib/utils';
-import { Skeleton } from '@/components/ui/skeleton';
+import { db } from '@/db';
+import { blogPosts } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 
 interface BlogPost {
-  id: number;
+  id: string;
   slug: string;
   title: string;
-  description: string;
+  description: string | null;
   content: string;
   coverImage: string | null;
-  published: boolean;
-  createdAt: string;
-  updatedAt: string;
-  publishedAt: string | null;
+  published: boolean | null;
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt: Date | null;
+  authorId: string | null;
 }
 
-export default function PostPage() {
-  const params = useParams();
-  const slug = params?.slug as string;
-  const [post, setPost] = useState<BlogPost | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFoundError, setNotFoundError] = useState(false);
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
 
-  useEffect(() => {
-    const fetchPost = async () => {
-      try {
-        const res = await fetch(`/api/blog?slug=${slug}&published=true`);
-        if (!res.ok) {
-          setNotFoundError(true);
-          return;
-        }
-        const data = await res.json();
-        if (!data) {
-          setNotFoundError(true);
-          return;
-        }
-        setPost(data);
-      } catch (error) {
-        console.error('Error fetching post:', error);
-        setNotFoundError(true);
-      } finally {
-        setLoading(false);
-      }
+async function getPost(slug: string): Promise<BlogPost | null> {
+  try {
+    const posts = await db
+      .select()
+      .from(blogPosts)
+      .where(and(eq(blogPosts.slug, slug), eq(blogPosts.published, true)))
+      .limit(1);
+
+    return posts[0] || null;
+  } catch (error) {
+    console.error('Error fetching post:', error);
+    return null;
+  }
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getPost(slug);
+
+  if (!post) {
+    return {
+      title: 'Post Not Found',
     };
-
-    if (slug) {
-      fetchPost();
-    }
-  }, [slug]);
-
-  if (loading) {
-    return (
-      <PageWrapper>
-        <article className="content-article">
-          <header className="article-header">
-            <Skeleton className="h-12 w-3/4 mb-4" />
-            <Skeleton className="h-5 w-40 mb-6" />
-            <Skeleton className="h-64 w-full mb-6" />
-          </header>
-          <div className="article-content">
-            <Skeleton className="h-4 w-full mb-3" />
-            <Skeleton className="h-4 w-full mb-3" />
-            <Skeleton className="h-4 w-5/6 mb-6" />
-            <Skeleton className="h-4 w-full mb-3" />
-            <Skeleton className="h-4 w-full mb-3" />
-            <Skeleton className="h-4 w-4/5 mb-6" />
-          </div>
-        </article>
-      </PageWrapper>
-    );
   }
 
-  if (notFoundError || !post) {
-    return (
-      <PageWrapper>
-        <div style={{ padding: '2rem', textAlign: 'center' }}>
-          <h1 style={{ color: 'var(--color-fg-bold)' }}>Post Not Found</h1>
-          <p style={{ color: 'var(--color-fg-light)' }}>
-            The post you're looking for doesn't exist.
-          </p>
-        </div>
-      </PageWrapper>
-    );
+  return {
+    title: post.title,
+    description: post.description || undefined,
+    openGraph: {
+      title: post.title,
+      description: post.description || undefined,
+      type: 'article',
+      publishedTime: post.publishedAt?.toISOString() || post.createdAt.toISOString(),
+      modifiedTime: post.updatedAt.toISOString(),
+      images: post.coverImage ? [{ url: post.coverImage }] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.description || undefined,
+      images: post.coverImage ? [post.coverImage] : undefined,
+    },
+  };
+}
+
+export default async function PostPage({ params }: PageProps) {
+  const { slug } = await params;
+  const post = await getPost(slug);
+
+  if (!post) {
+    notFound();
   }
 
   const date = post.publishedAt || post.createdAt;
@@ -100,20 +89,20 @@ export default function PostPage() {
         post={{
           slug: post.slug,
           title: post.title,
-          description: post.description,
+          description: post.description || '',
           content: post.content,
-          date: isValidDate ? date : new Date().toISOString(),
+          date: isValidDate ? date.toISOString() : new Date().toISOString(),
         }}
       />
       <article className="post-page">
         <header className="post-header">
           {isValidDate && (
-            <time className="post-date" dateTime={date}>
-              {formatDate(date)}
+            <time className="post-date" dateTime={date.toISOString()}>
+              {formatDate(date.toISOString())}
             </time>
           )}
           <h1 className="post-title">{post.title}</h1>
-          <p className="post-description">{post.description}</p>
+          {post.description && <p className="post-description">{post.description}</p>}
         </header>
         <div className="post-content prose">
           <Markdown

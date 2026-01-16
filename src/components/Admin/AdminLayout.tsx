@@ -99,7 +99,7 @@ export default function AdminLayout({
               </span>
               <button
                 onClick={handleSignOut}
-                className="rounded-md px-3 py-1.5 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                className="rounded-md px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                 style={{ backgroundColor: 'rgb(220, 38, 38)' }}
                 onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgb(185, 28, 28)')}
                 onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgb(220, 38, 38)')}

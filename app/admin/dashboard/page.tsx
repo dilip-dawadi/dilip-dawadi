@@ -79,12 +79,13 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-4">
                 {session?.user?.image && (
                   <img
                     src={session.user.image}
                     alt={session.user.name || 'User'}
-                    className="h-8 w-8 rounded-full"
+                    className="h-8 w-8 rounded-full ring-2"
+                    style={{ borderColor: 'var(--color-border)' }}
                   />
                 )}
                 <span className="text-sm" style={{ color: 'var(--color-fg)' }}>

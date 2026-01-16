@@ -46,6 +46,7 @@ export default function ProjectsAdminPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectFormSchema),
@@ -326,15 +327,34 @@ export default function ProjectsAdminPage() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => (
                 <Card key={project.id} className="overflow-hidden">
-                  {project.image && (
-                    <div className="h-40 overflow-hidden">
+                  <div
+                    className="h-40 overflow-hidden"
+                    style={{ backgroundColor: 'var(--color-bg-secondary)' }}
+                  >
+                    {project.image && !imageErrors[project.id] ? (
                       <img
                         src={project.image}
                         alt={project.title}
                         className="w-full h-full object-cover"
+                        onError={() => setImageErrors((prev) => ({ ...prev, [project.id]: true }))}
                       />
-                    </div>
-                  )}
+                    ) : (
+                      <div
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--color-fg-light)',
+                          fontStyle: 'italic',
+                          fontSize: '0.9rem',
+                        }}
+                      >
+                        No image available
+                      </div>
+                    )}
+                  </div>
 
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-2">

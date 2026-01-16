@@ -7,16 +7,8 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { InputWithLabel } from '@/components/ui/input-with-label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Card,
   CardContent,
@@ -140,7 +132,7 @@ export default function WritingAdminPage() {
   };
 
   return (
-    <AdminLayout title="Blog Posts">
+    <AdminLayout title="Blog">
       <div className="mx-auto max-w-7xl">
         <Card className="mb-12">
           <CardHeader>

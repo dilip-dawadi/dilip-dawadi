@@ -11,17 +11,13 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('[Admin Page] Component mounted');
     let isMounted = true;
     const abortController = new AbortController();
 
     const checkSession = async () => {
       try {
-        console.log('[Admin Page] Getting auth client...');
         const authClient = await getAuthClient();
-        console.log('[Admin Page] Checking session...');
         const { data } = await authClient.getSession();
-        console.log('[Admin Page] Session data:', data);
         if (!isMounted) return;
 
         if (data) {
@@ -46,8 +42,6 @@ export default function AdminPage() {
 
         setLoading(false);
       } catch (error: any) {
-        console.error('[Admin Page] Error during session check:', error);
-        console.error('[Admin Page] Error stack:', error?.stack);
         console.error('[Admin Page] Error name:', error?.name);
         if (error.name === 'AbortError' || !isMounted) return;
         if (isMounted) {

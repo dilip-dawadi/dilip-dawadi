@@ -17,12 +17,8 @@ export default function AdminDashboard() {
 
     const checkSession = async () => {
       try {
-        console.log('[Admin Page] Component mounted');
-        console.log('[Admin Page] Getting auth client...');
         const authClient = await getAuthClient();
-        console.log('[Admin Page] Auth client retrieved, getting session...');
         const { data } = await authClient.getSession();
-        console.log('[Admin Page] Session data:', data);
         if (!isMounted) return;
 
         if (!data) {
@@ -49,9 +45,6 @@ export default function AdminDashboard() {
           setLoading(false);
         }
       } catch (error: any) {
-        console.error('[Admin Page] Error during session check:', error);
-        console.error('[Admin Page] Error stack:', error.stack);
-        console.error('[Admin Page] Error name:', error.name);
         if (error.name === 'AbortError' || !isMounted) return;
         router.replace('/admin');
       }

@@ -2,18 +2,12 @@ import bundleAnalyzer from '@next/bundle-analyzer';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // Note: 'output: export' removed to support API routes for authentication
-  // If you need static export, use a different auth strategy or deploy with a Node.js server
-
   // Allow dev server access from local network (mobile testing, etc.)
   allowedDevOrigins: ['http://192.168.*.*:3000'],
 
   images: {
     unoptimized: true,
   },
-
-  // Note: trailingSlash disabled because it conflicts with catch-all API routes
-  // trailingSlash: true,
 
   // Webpack configuration for better-auth compatibility
   webpack: (config, { isServer, webpack }) => {
@@ -30,7 +24,7 @@ const nextConfig: NextConfig = {
         os: false,
       };
 
-      // Define process.env variables to prevent build-time inlining issues
+      // Define process.env variables to prevent runtime errors
       config.plugins.push(
         new webpack.DefinePlugin({
           'process.env.BETTER_AUTH_SECRET': JSON.stringify(undefined),
@@ -54,7 +48,7 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
 
-  // Environment variables configuration for client-side
+  // Client-side environment variables
   env: {
     BETTER_AUTH_SECRET: '',
     AUTH_SECRET: '',

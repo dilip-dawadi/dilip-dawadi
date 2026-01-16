@@ -12,12 +12,9 @@ export async function getAuthClient() {
   }
 
   authClientPromise = (async () => {
-    console.log('[Auth Wrapper] Dynamically importing better-auth...');
-
     try {
       const { createAuthClient } = await import('better-auth/react');
 
-      console.log('[Auth Wrapper] Creating auth client...');
       authClientInstance = createAuthClient({
         baseURL: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
         basePath: '/api/auth',
@@ -29,7 +26,6 @@ export async function getAuthClient() {
         },
       });
 
-      console.log('[Auth Wrapper] Auth client created successfully');
       return authClientInstance;
     } catch (error) {
       console.error('[Auth Wrapper] Failed to create auth client:', error);

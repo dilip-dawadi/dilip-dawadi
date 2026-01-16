@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { getExperienceText } from '@/lib/experience';
 import ThemePortrait from './ThemePortrait';
 
 export default function Hero() {
@@ -20,7 +21,7 @@ export default function Hero() {
           <span className="hero-highlight">Node.js</span>, and{' '}
           <span className="hero-highlight">PostgreSQL</span>.
           <br />
-          3.5+ years of experience delivering production-ready solutions.
+          {getExperienceText()} of experience delivering production-ready solutions.
         </p>
 
         <div className="hero-chips">

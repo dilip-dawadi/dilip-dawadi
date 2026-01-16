@@ -5,6 +5,7 @@ import Navigation from '@/components/Template/Navigation';
 import ScrollToTop from '@/components/Template/ScrollToTop';
 import { SessionProvider } from '../src/components/SessionProvider';
 import { AUTHOR_NAME, SITE_URL, TWITTER_HANDLE } from '@/lib/utils';
+import { getExperienceText } from '@/lib/experience';
 import './tailwind.css';
 
 const sourceSans = Source_Sans_3({
@@ -25,8 +26,7 @@ const raleway = Raleway({
   adjustFontFallback: true,
 });
 
-const siteDescription =
-  'Full-Stack Software Developer with 3.5+ years of experience in React, Node.js, PostgreSQL, and modern DevOps. Based in Toronto, Canada.';
+const siteDescription = `Full-Stack Software Developer with ${getExperienceText()} of experience in React, Node.js, PostgreSQL, and modern DevOps. Based in Toronto, Canada.`;
 
 export const metadata: Metadata = {
   title: {

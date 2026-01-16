@@ -4,7 +4,7 @@ date: '2026-01-15'
 description: A brief introduction to who I am and what I do
 ---
 
-Hi, I'm Dilip Dawadi, a Full-Stack Software Developer with over 3.5 years of experience building modern web applications. I specialize in React, Node.js, PostgreSQL, and cloud technologies.
+Hi, I'm Dilip Dawadi, a Full-Stack Software Developer with over 4 years of experience building modern web applications. I specialize in React, Node.js, PostgreSQL, and cloud technologies.
 
 Currently based in Toronto, Canada, I'm passionate about creating efficient, scalable solutions and staying up-to-date with the latest technologies in web development.
 

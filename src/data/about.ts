@@ -1,6 +1,8 @@
+import { getExperienceText } from '@/lib/experience';
+
 export const aboutMarkdown = `# Intro
 
-I am a Full-Stack Software Developer based in Toronto, Canada, with 3.5+ years of professional experience building, optimizing, and deploying scalable web applications. I specialize in React, Node.js, and modern databases like PostgreSQL and MongoDB.
+I am a Full-Stack Software Developer based in Toronto, Canada, with ${getExperienceText()} of professional experience building, optimizing, and deploying scalable web applications. I specialize in React, Node.js, and modern databases like PostgreSQL and MongoDB.
 
 Currently, I work as a Freelance Software Developer, leading the development and maintenance of a public-sector Service Monitoring platform for the municipality of Salluit. I'm passionate about creating solutions that have real-world impact and delivering production-ready applications that serve communities.
 

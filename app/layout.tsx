@@ -99,6 +99,61 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <head>
+        {/* Better Auth polyfill - MUST load first - inline for maximum priority */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function () {
+  if (typeof window !== 'undefined') {
+    // Define Turbopack's internal environment variable helper
+    window._process_env_key = undefined;
+    globalThis._process_env_key = undefined;
+    
+    const envProxy = new Proxy(
+      {
+        NODE_ENV: 'production',
+        BETTER_AUTH_SECRET: undefined,
+        AUTH_SECRET: undefined,
+        BETTER_AUTH_TELEMETRY: undefined,
+        BETTER_AUTH_TELEMETRY_ID: undefined,
+        BETTER_AUTH_URL: undefined,
+        PACKAGE_VERSION: '0.0.0',
+        BETTER_AUTH_TELEMETRY_ENDPOINT: 'https://telemetry.better-auth.com/v1/track',
+      },
+      {
+        get(target, prop) {
+          return prop in target ? target[prop] : undefined;
+        },
+      }
+    );
+
+    if (typeof process === 'undefined') {
+      window.process = { env: envProxy };
+      globalThis.process = window.process;
+    } else if (process.env) {
+      const existingEnv = process.env;
+      process.env = new Proxy(existingEnv, {
+        get(target, prop) {
+          if (prop in target) return target[prop];
+          return undefined;
+        },
+      });
+    }
+
+    if (typeof Deno === 'undefined') {
+      window.Deno = undefined;
+      globalThis.Deno = undefined;
+    }
+    if (typeof Bun === 'undefined') {
+      window.Bun = undefined;
+      globalThis.Bun = undefined;
+    }
+  }
+})();
+`,
+          }}
+        />
+
         {/* CSP-safe theme initialization - prevents flash on load */}
         <Script id="theme-init" strategy="beforeInteractive">
           {`(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t)}else if(window.matchMedia('(prefers-color-scheme:dark)').matches){document.documentElement.setAttribute('data-theme','dark')}else{document.documentElement.setAttribute('data-theme','light')}}catch(e){}})();`}

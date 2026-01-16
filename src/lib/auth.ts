@@ -8,7 +8,11 @@ export const auth = betterAuth({
   }),
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
-  trustedOrigins: ['http://localhost:3000', 'https://www.dilipdawadi.com.np'],
+  trustedOrigins: [
+    'http://localhost:3000',
+    'https://www.dilipdawadi.com.np',
+    process.env.NEXT_PUBLIC_APP_URL as string,
+  ],
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,

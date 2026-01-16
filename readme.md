@@ -15,7 +15,7 @@
 
 ## 🚀 About Me
 
-- 💼 Full-Stack Software Developer with **3.5+ years** of professional experience
+- 💼 Full-Stack Software Developer with **4+ years** of professional experience
 - 🌍 Based in **Toronto, Canada**
 - 🔭 Currently working on production-grade applications with focus on scalability
 - 🌱 Learning advanced system design and cloud architecture patterns

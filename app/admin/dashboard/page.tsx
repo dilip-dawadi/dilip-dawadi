@@ -21,6 +21,7 @@ export default function AdminDashboard() {
       try {
         const authClient = await getAuthClient();
         const { data } = await authClient.getSession();
+        console.log('Session data:', data);
         if (!isMounted) return;
 
         if (!data) {

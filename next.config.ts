@@ -39,6 +39,9 @@ const nextConfig: NextConfig = {
           'process.env.BETTER_AUTH_TELEMETRY_ID': JSON.stringify(undefined),
           'process.env.NODE_ENV': JSON.stringify('production'),
           'process.env.PACKAGE_VERSION': JSON.stringify('0.0.0'),
+          'process.env.BETTER_AUTH_TELEMETRY_ENDPOINT': JSON.stringify(
+            'https://telemetry.better-auth.com/v1/track',
+          ),
         }),
       );
     }

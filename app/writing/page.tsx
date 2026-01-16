@@ -1,19 +1,11 @@
-import type { Metadata } from 'next';
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import PageWrapper from '@/components/Template/PageWrapper';
+import { Skeleton } from '@/components/ui/skeleton';
 import writing from '@/data/writing';
-import { getAllPosts } from '@/lib/posts';
 import { formatDate } from '@/lib/utils';
-
-export const metadata: Metadata = {
-  title: 'Writing',
-  description: 'Articles on AI security, LLM red teaming, and trust & safety.',
-  alternates: {
-    types: {
-      'application/rss+xml': '/feed.xml',
-    },
-  },
-};
 
 interface UnifiedItem {
   title: string;
@@ -21,6 +13,19 @@ interface UnifiedItem {
   date: string;
   description: string;
   isExternal: boolean;
+}
+
+interface BlogPost {
+  id: number;
+  slug: string;
+  title: string;
+  description: string;
+  content: string;
+  coverImage: string | null;
+  published: boolean;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
 }
 
 // Extracted component to reduce duplication
@@ -49,12 +54,7 @@ function WritingItem({ item, showDate = true }: WritingItemProps) {
 
   if (item.isExternal) {
     return (
-      <a
-        href={item.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="writing-item"
-      >
+      <a href={item.url} target="_blank" rel="noopener noreferrer" className="writing-item">
         {content}
       </a>
     );
@@ -68,15 +68,40 @@ function WritingItem({ item, showDate = true }: WritingItemProps) {
 }
 
 export default function WritingPage() {
-  // Get internal posts from markdown files
-  const internalPosts = getAllPosts();
-  const internalItems: UnifiedItem[] = internalPosts.map((post) => ({
-    title: post.title,
-    url: `/writing/${post.slug}`,
-    date: post.date,
-    description: post.description,
-    isExternal: false,
-  }));
+  const [loading, setLoading] = useState(true);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const res = await fetch('/api/blog?published=true');
+        const data = await res.json();
+        setBlogPosts(data);
+      } catch (error) {
+        console.error('Error fetching blog posts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPosts();
+  }, []);
+
+  // Convert database posts to unified format
+  const internalItems: UnifiedItem[] = blogPosts
+    .map((post) => {
+      const date = post.publishedAt || post.createdAt;
+      // Validate date
+      const isValidDate = date && !isNaN(new Date(date).getTime());
+
+      return {
+        title: post.title,
+        url: `/writing/${post.slug}`,
+        date: isValidDate ? date : '',
+        description: post.description,
+        isExternal: false,
+      };
+    })
+    .filter((item) => item.date); // Only include items with valid dates
 
   // Get external articles from data file
   const externalItems: UnifiedItem[] = writing.map((item) => ({
@@ -97,31 +122,42 @@ export default function WritingPage() {
         <header className="writing-header">
           <div className="writing-header-row">
             <h1 className="page-title">Writing</h1>
-            <a
-              href="/feed.xml"
-              className="writing-rss-link"
-              title="RSS Feed"
-              aria-label="RSS Feed"
-            >
+            <a href="/feed.xml" className="writing-rss-link" title="RSS Feed" aria-label="RSS Feed">
               RSS
             </a>
           </div>
         </header>
 
-        <div className="writing-list">
-          {dated.map((item) => (
-            <WritingItem key={item.url} item={item} />
-          ))}
+        {loading ? (
+          <div className="writing-list">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div
+                key={i}
+                className="writing-item"
+                style={{ padding: '1.5rem 0', borderBottom: '1px solid var(--color-border)' }}
+              >
+                <Skeleton className="h-7 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="writing-list">
+            {dated.map((item) => (
+              <WritingItem key={item.url} item={item} />
+            ))}
 
-          {undated.length > 0 && (
-            <>
-              <div className="writing-section-label">Guides</div>
-              {undated.map((item) => (
-                <WritingItem key={item.url} item={item} showDate={false} />
-              ))}
-            </>
-          )}
-        </div>
+            {undated.length > 0 && (
+              <>
+                <div className="writing-section-label">Guides</div>
+                {undated.map((item) => (
+                  <WritingItem key={item.url} item={item} showDate={false} />
+                ))}
+              </>
+            )}
+          </div>
+        )}
       </article>
     </PageWrapper>
   );

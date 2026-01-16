@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1768521178067,
+      "tag": "0000_useful_betty_brant",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1768521916604,
+      "tag": "0001_curious_ares",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768522289995,
+      "tag": "0002_outstanding_mongu",
+      "breakpoints": true
+    }
+  ]
+}

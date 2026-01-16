@@ -2,7 +2,8 @@ import bundleAnalyzer from '@next/bundle-analyzer';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  output: 'export',
+  // Note: 'output: export' removed to support API routes for authentication
+  // If you need static export, use a different auth strategy or deploy with a Node.js server
 
   // Allow dev server access from local network (mobile testing, etc.)
   allowedDevOrigins: ['http://192.168.*.*:3000'],
@@ -11,7 +12,8 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
 
-  trailingSlash: true,
+  // Note: trailingSlash disabled because it conflicts with catch-all API routes
+  // trailingSlash: true,
 
   // Turbopack configuration (used in development)
   turbopack: {
@@ -21,10 +23,7 @@ const nextConfig: NextConfig = {
 
   // Experimental features
   experimental: {
-    optimizePackageImports: [
-      '@fortawesome/react-fontawesome',
-      '@fortawesome/fontawesome-svg-core',
-    ],
+    optimizePackageImports: ['@fortawesome/react-fontawesome', '@fortawesome/fontawesome-svg-core'],
   },
 };
 

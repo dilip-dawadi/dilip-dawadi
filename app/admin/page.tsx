@@ -8,14 +8,18 @@ export default function AdminPage() {
   const router = useRouter();
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('[Admin Page] Component mounted');
     let isMounted = true;
     const abortController = new AbortController();
 
     const checkSession = async () => {
       try {
+        console.log('[Admin Page] Checking session...');
         const { data } = await authClient.getSession();
+        console.log('[Admin Page] Session data:', data);
         if (!isMounted) return;
 
         if (data) {
@@ -40,8 +44,12 @@ export default function AdminPage() {
 
         setLoading(false);
       } catch (error: any) {
+        console.error('[Admin Page] Error during session check:', error);
+        console.error('[Admin Page] Error stack:', error?.stack);
+        console.error('[Admin Page] Error name:', error?.name);
         if (error.name === 'AbortError' || !isMounted) return;
         if (isMounted) {
+          setError(error?.message || 'Unknown error occurred');
           setLoading(false);
         }
       }
@@ -54,6 +62,36 @@ export default function AdminPage() {
       abortController.abort();
     };
   }, [router]);
+
+  // Show error state
+  if (error) {
+    return (
+      <div
+        className="flex min-h-screen items-center justify-center"
+        style={{ backgroundColor: 'var(--color-bg)' }}
+      >
+        <div
+          className="w-full max-w-md space-y-8 rounded-lg p-8 shadow-lg"
+          style={{
+            backgroundColor: 'var(--color-bg-alt)',
+            border: '1px solid var(--color-border)',
+          }}
+        >
+          <div className="text-center">
+            <h2 className="text-2xl font-bold" style={{ color: 'var(--color-fg)' }}>
+              Authentication Error
+            </h2>
+            <p className="mt-4" style={{ color: 'var(--color-fg-muted)' }}>
+              {error}
+            </p>
+            <p className="mt-2 text-sm" style={{ color: 'var(--color-fg-muted)' }}>
+              Check the browser console for more details.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleGoogleSignIn = async () => {
     await authClient.signIn.social({

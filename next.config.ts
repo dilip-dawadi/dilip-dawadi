@@ -15,11 +15,8 @@ const nextConfig: NextConfig = {
   // Note: trailingSlash disabled because it conflicts with catch-all API routes
   // trailingSlash: true,
 
-  // Explicitly transpile better-auth to prevent Node built-ins in client bundle
-  transpilePackages: ['better-auth'],
-
   // Webpack configuration for better-auth compatibility
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, webpack }) => {
     if (!isServer) {
       // Prevent Node.js built-ins from being bundled in client code
       config.resolve.fallback = {
@@ -32,6 +29,18 @@ const nextConfig: NextConfig = {
         fs: false,
         os: false,
       };
+      
+      // Define process.env variables to prevent build-time inlining issues
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          'process.env.BETTER_AUTH_SECRET': JSON.stringify(undefined),
+          'process.env.AUTH_SECRET': JSON.stringify(undefined),
+          'process.env.BETTER_AUTH_TELEMETRY': JSON.stringify(undefined),
+          'process.env.BETTER_AUTH_TELEMETRY_ID': JSON.stringify(undefined),
+          'process.env.NODE_ENV': JSON.stringify('production'),
+          'process.env.PACKAGE_VERSION': JSON.stringify('0.0.0'),
+        })
+      );
     }
     return config;
   },

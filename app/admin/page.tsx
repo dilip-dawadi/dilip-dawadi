@@ -120,7 +120,10 @@ export default function AdminPage() {
         style={{ backgroundColor: 'var(--color-bg-alt)', border: '1px solid var(--color-border)' }}
       >
         <div className="text-center">
-          <h2 className="text-3xl font-bold" style={{ color: 'var(--color-fg-bold)' }}>
+          <h2
+            className="text-3xl max-sm:text-2xl font-bold"
+            style={{ color: 'var(--color-fg-bold)' }}
+          >
             Admin Login
           </h2>
           <p className="mt-2 text-sm" style={{ color: 'var(--color-fg-light)' }}>

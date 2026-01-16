@@ -15,9 +15,6 @@ const nextConfig: NextConfig = {
   // Note: trailingSlash disabled because it conflicts with catch-all API routes
   // trailingSlash: true,
 
-  // Fix for Better Auth 2026 - Keep server-only packages external
-  serverExternalPackages: ['better-auth'],
-
   // Explicitly transpile better-auth to prevent Node built-ins in client bundle
   transpilePackages: ['better-auth'],
 

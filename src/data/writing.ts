@@ -6,14 +6,12 @@ export interface WritingItem {
 }
 
 const data: WritingItem[] = [
-  // Add your blog posts here
-  // Example:
-  // {
-  //   title: 'Your Blog Post Title',
-  //   url: 'https://yourblog.com/post-url',
-  //   date: '2025-01-15',
-  //   description: 'Brief description of your blog post.',
-  // },
+  {
+    title: 'Your Blog Post Title',
+    url: 'https://yourblog.com/post-url',
+    date: '2025-01-15',
+    description: 'Brief description of your blog post.',
+  },
 ];
 
 export default data;

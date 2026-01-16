@@ -15,13 +15,25 @@ const nextConfig: NextConfig = {
   // Note: trailingSlash disabled because it conflicts with catch-all API routes
   // trailingSlash: true,
 
+  // Fix for Better Auth 2026 - Keep server-only packages external
+  serverExternalPackages: ['better-auth'],
+
+  // Explicitly transpile better-auth to prevent Node built-ins in client bundle
+  transpilePackages: ['better-auth'],
+
   // Webpack configuration for better-auth compatibility
   webpack: (config, { isServer }) => {
     if (!isServer) {
-      // Polyfill process.env for client-side better-auth code
+      // Prevent Node.js built-ins from being bundled in client code
       config.resolve.fallback = {
         ...config.resolve.fallback,
+        crypto: false,
+        stream: false,
+        buffer: false,
         process: false,
+        path: false,
+        fs: false,
+        os: false,
       };
     }
     return config;

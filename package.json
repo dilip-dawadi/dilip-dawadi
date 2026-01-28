@@ -10,10 +10,7 @@
     "lint": "biome check .",
     "type-check": "tsc --noEmit",
     "format": "biome format --write . && prettier --write \"**/*.{md,css,scss}\"",
-    "format:check": "biome format . && prettier --check \"**/*.{md,css,scss}\"",
-    "predeploy": "npm run build",
-    "analyze": "ANALYZE=true npm run build",
-    "db:seed": "tsx scripts/seed.ts"
+    "format:check": "biome format . && prettier --check \"**/*.{md,css,scss}\""
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.1",
@@ -23,7 +20,6 @@
     "@fortawesome/react-fontawesome": "^3.1.1",
     "@hookform/resolvers": "^3.9.1",
     "@neondatabase/serverless": "^1.0.2",
-    "@next/third-parties": "^16.1.2",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/postcss": "^4.1.18",

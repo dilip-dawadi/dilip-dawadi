@@ -22,7 +22,7 @@ async function refreshAccessToken(): Promise<string> {
     },
     body: new URLSearchParams({
       client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GMAIL_CLIENT_SECRET!,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
       refresh_token: process.env.GMAIL_REFRESH_TOKEN!,
       grant_type: 'refresh_token',
     }),

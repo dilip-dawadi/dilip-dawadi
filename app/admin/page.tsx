@@ -161,6 +161,29 @@ export default function AdminPage() {
             </svg>
             <span className="font-medium">Continue with Google</span>
           </button>
+
+          <p className="mt-4 text-center text-xs" style={{ color: 'var(--color-fg-light)' }}>
+            By signing in, you agree to our{' '}
+            <a
+              href="/terms-of-service"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:opacity-80"
+              style={{ color: 'var(--color-link)' }}
+            >
+              Terms of Service
+            </a>{' '}
+            and{' '}
+            <a
+              href="/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:opacity-80"
+              style={{ color: 'var(--color-link)' }}
+            >
+              Privacy Policy
+            </a>
+          </p>
         </div>
       </div>
     </div>

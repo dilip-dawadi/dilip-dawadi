@@ -29,6 +29,16 @@ async function refreshAccessToken(): Promise<string> {
   });
 
   if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error('❌ Token refresh failed:', errorData);
+
+    // Check for specific error types
+    if (errorData.error === 'invalid_grant') {
+      console.error('⚠️  Refresh token expired! Regenerate with: npm run gmail:token');
+      console.error('📖 See: docs/FIX_TOKEN_EXPIRY.md for help');
+      throw new Error('Refresh token expired or revoked. Run: npm run gmail:token');
+    }
+
     throw new Error(`Failed to refresh token: ${response.statusText}`);
   }
 

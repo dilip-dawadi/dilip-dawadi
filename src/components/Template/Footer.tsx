@@ -31,6 +31,8 @@ export default function Footer() {
               <Link href="/resume">Resume</Link>
               <Link href="/projects">Projects</Link>
               <Link href="/contact">Contact</Link>
+              <Link href="/privacy-policy">Privacy Policy</Link>
+              <Link href="/terms-of-service">Terms of Service</Link>
             </div>
           </nav>
 

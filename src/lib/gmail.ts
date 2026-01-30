@@ -127,65 +127,169 @@ export async function sendLoginNotification(userInfo: {
     <!DOCTYPE html>
     <html>
     <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #4285f4; color: white; padding: 20px; border-radius: 5px 5px 0 0; }
-        .content { background: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px; }
-        .info-row { margin: 10px 0; padding: 10px; background: white; border-radius: 3px; }
-        .label { font-weight: bold; color: #555; }
-        .footer { margin-top: 20px; font-size: 12px; color: #777; text-align: center; }
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        body { 
+          font-family: 'Source Sans Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+          line-height: 1.7;
+          color: #1d1d1f;
+          background-color: #f5f5f7;
+          padding: 20px;
+        }
+        .container { 
+          max-width: 600px;
+          margin: 0 auto;
+          background-color: #ffffff;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .header { 
+          background: linear-gradient(135deg, #2e59ba 0%, #60a5fa 100%);
+          color: #ffffff;
+          padding: 32px 24px;
+          text-align: center;
+        }
+        .header h1 { 
+          font-family: 'Raleway', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+          font-size: 24px;
+          font-weight: 700;
+          margin: 0;
+          letter-spacing: 0.01em;
+        }
+        .header .emoji {
+          font-size: 32px;
+          margin-bottom: 8px;
+          display: block;
+        }
+        .content { 
+          padding: 32px 24px;
+        }
+        .content p {
+          margin-bottom: 24px;
+          color: #58585d;
+          font-size: 15px;
+        }
+        .info-section {
+          background-color: #f5f5f7;
+          border-radius: 6px;
+          padding: 20px;
+          margin-bottom: 20px;
+        }
+        .info-row { 
+          padding: 12px 0;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+        .info-row:last-child {
+          border-bottom: none;
+        }
+        .label { 
+          font-weight: 600;
+          color: #1d1d1f;
+          display: inline-block;
+          min-width: 140px;
+          font-size: 14px;
+        }
+        .value {
+          color: #58585d;
+          font-size: 14px;
+        }
+        .warning-box {
+          margin-top: 24px;
+          padding: 16px 20px;
+          background-color: #fff3cd;
+          border-left: 4px solid #ffc107;
+          border-radius: 4px;
+        }
+        .warning-box p {
+          margin: 0;
+          color: #664d03;
+          font-size: 14px;
+          line-height: 1.6;
+        }
+        .footer { 
+          padding: 24px;
+          text-align: center;
+          background-color: #f5f5f7;
+          border-top: 1px solid rgba(0, 0, 0, 0.06);
+        }
+        .footer p {
+          font-size: 12px;
+          color: #58585d;
+          margin: 0;
+        }
+        .footer a {
+          color: #2e59ba;
+          text-decoration: none;
+        }
+        .footer a:hover {
+          text-decoration: underline;
+        }
       </style>
     </head>
     <body>
       <div class="container">
         <div class="header">
-          <h2>🔔 New Login Detected</h2>
+          <span class="emoji">🔔</span>
+          <h1>New Login Detected</h1>
         </div>
         <div class="content">
-          <p>A new login was detected on your website:</p>
+          <p>A new login was detected on your website. Here are the details:</p>
           
-          <div class="info-row">
-            <span class="label">User:</span> ${name || 'N/A'}
+          <div class="info-section">
+            <div class="info-row">
+              <span class="label">User:</span>
+              <span class="value">${name || 'N/A'}</span>
+            </div>
+            
+            <div class="info-row">
+              <span class="label">Email:</span>
+              <span class="value">${email}</span>
+            </div>
+            
+            <div class="info-row">
+              <span class="label">Login Time:</span>
+              <span class="value">${loginTime.toLocaleString('en-US', {
+                dateStyle: 'full',
+                timeStyle: 'long',
+              })}</span>
+            </div>
+            
+            ${
+              ipAddress
+                ? `
+            <div class="info-row">
+              <span class="label">IP Address:</span>
+              <span class="value">${ipAddress}</span>
+            </div>
+            `
+                : ''
+            }
+            
+            ${
+              userAgent
+                ? `
+            <div class="info-row">
+              <span class="label">Browser/Device:</span>
+              <span class="value">${userAgent}</span>
+            </div>
+            `
+                : ''
+            }
           </div>
           
-          <div class="info-row">
-            <span class="label">Email:</span> ${email}
+          <div class="warning-box">
+            <p>⚠️ If this wasn't you or you don't recognize this activity, please check your account security settings immediately.</p>
           </div>
-          
-          <div class="info-row">
-            <span class="label">Login Time:</span> ${loginTime.toLocaleString('en-US', {
-              dateStyle: 'full',
-              timeStyle: 'long',
-            })}
-          </div>
-          
-          ${
-            ipAddress
-              ? `
-          <div class="info-row">
-            <span class="label">IP Address:</span> ${ipAddress}
-          </div>
-          `
-              : ''
-          }
-          
-          ${
-            userAgent
-              ? `
-          <div class="info-row">
-            <span class="label">Browser/Device:</span> ${userAgent}
-          </div>
-          `
-              : ''
-          }
-          
-          <p style="margin-top: 20px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 3px;">
-            ⚠️ If this wasn't you or you don't recognize this activity, please check your account security settings immediately.
-          </p>
         </div>
         <div class="footer">
-          <p>This is an automated notification from dilipdawadi.com.np</p>
+          <p>This is an automated notification from <a href="https://dilipdawadi.com.np">dilipdawadi.com.np</a></p>
         </div>
       </div>
     </body>

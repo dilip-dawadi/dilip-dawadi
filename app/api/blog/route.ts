@@ -3,6 +3,7 @@ import { blogPosts } from '@/db/schema';
 import { checkAdminAccess } from '@/lib/admin';
 import { NextResponse } from 'next/server';
 import { eq, desc } from 'drizzle-orm';
+import { notifyUnauthorizedAccess, notifyDatabaseError } from '@/lib/gmail';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +32,16 @@ export async function GET(request: Request) {
     return NextResponse.json(posts, { status: 200 });
   } catch (error) {
     console.error('Error fetching blog posts:', error);
+    // Notify about database error for critical read operations
+    try {
+      await notifyDatabaseError({
+        operation: 'fetch blog posts',
+        error: error instanceof Error ? error.message : String(error),
+        table: 'blogPosts',
+      });
+    } catch (notifyError) {
+      console.error('Failed to send notification:', notifyError);
+    }
     return NextResponse.json({ error: 'Failed to fetch blog posts' }, { status: 500 });
   }
 }
@@ -40,6 +51,17 @@ export async function POST(request: Request) {
     const { isAdmin, session } = await checkAdminAccess();
 
     if (!isAdmin || !session) {
+      // Notify about unauthorized access attempt
+      try {
+        await notifyUnauthorizedAccess({
+          path: '/api/blog',
+          ipAddress: request.headers.get('x-forwarded-for') || undefined,
+          userAgent: request.headers.get('user-agent') || undefined,
+          attemptedAction: 'Create blog post (POST)',
+        });
+      } catch (notifyError) {
+        console.error('Failed to send notification:', notifyError);
+      }
       return NextResponse.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
     }
 
@@ -65,6 +87,16 @@ export async function POST(request: Request) {
     return NextResponse.json(result[0], { status: 201 });
   } catch (error) {
     console.error('Error creating blog post:', error);
+    // Notify about database error
+    try {
+      await notifyDatabaseError({
+        operation: 'create blog post',
+        error: error instanceof Error ? error.message : String(error),
+        table: 'blogPosts',
+      });
+    } catch (notifyError) {
+      console.error('Failed to send notification:', notifyError);
+    }
     return NextResponse.json({ error: 'Failed to create blog post' }, { status: 500 });
   }
 }
@@ -74,6 +106,17 @@ export async function PUT(request: Request) {
     const { isAdmin } = await checkAdminAccess();
 
     if (!isAdmin) {
+      // Notify about unauthorized access attempt
+      try {
+        await notifyUnauthorizedAccess({
+          path: '/api/blog',
+          ipAddress: request.headers.get('x-forwarded-for') || undefined,
+          userAgent: request.headers.get('user-agent') || undefined,
+          attemptedAction: 'Update blog post (PUT)',
+        });
+      } catch (notifyError) {
+        console.error('Failed to send notification:', notifyError);
+      }
       return NextResponse.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
     }
 
@@ -110,6 +153,16 @@ export async function PUT(request: Request) {
     return NextResponse.json(result[0], { status: 200 });
   } catch (error) {
     console.error('Error updating blog post:', error);
+    // Notify about database error
+    try {
+      await notifyDatabaseError({
+        operation: 'update blog post',
+        error: error instanceof Error ? error.message : String(error),
+        table: 'blogPosts',
+      });
+    } catch (notifyError) {
+      console.error('Failed to send notification:', notifyError);
+    }
     return NextResponse.json({ error: 'Failed to update blog post' }, { status: 500 });
   }
 }
@@ -119,6 +172,17 @@ export async function DELETE(request: Request) {
     const { isAdmin } = await checkAdminAccess();
 
     if (!isAdmin) {
+      // Notify about unauthorized access attempt
+      try {
+        await notifyUnauthorizedAccess({
+          path: '/api/blog',
+          ipAddress: request.headers.get('x-forwarded-for') || undefined,
+          userAgent: request.headers.get('user-agent') || undefined,
+          attemptedAction: 'Delete blog post (DELETE)',
+        });
+      } catch (notifyError) {
+        console.error('Failed to send notification:', notifyError);
+      }
       return NextResponse.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
     }
 
@@ -134,6 +198,16 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error('Error deleting blog post:', error);
+    // Notify about database error
+    try {
+      await notifyDatabaseError({
+        operation: 'delete blog post',
+        error: error instanceof Error ? error.message : String(error),
+        table: 'blogPosts',
+      });
+    } catch (notifyError) {
+      console.error('Failed to send notification:', notifyError);
+    }
     return NextResponse.json({ error: 'Failed to delete blog post' }, { status: 500 });
   }
 }

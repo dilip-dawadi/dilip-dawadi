@@ -113,16 +113,55 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
 }
 
 /**
- * Send login notification email
+ * Event severity levels
  */
-export async function sendLoginNotification(userInfo: {
-  email: string;
-  name?: string;
-  loginTime: Date;
+export enum EventSeverity {
+  CRITICAL = 'CRITICAL',
+  HIGH = 'HIGH',
+  MEDIUM = 'MEDIUM',
+}
+
+interface CriticalEventInfo {
+  eventType: string;
+  severity: EventSeverity;
+  message: string;
+  timestamp: Date;
+  details?: Record<string, any>;
   ipAddress?: string;
   userAgent?: string;
-}): Promise<boolean> {
-  const { email, name, loginTime, ipAddress, userAgent } = userInfo;
+}
+
+/**
+ * Get color scheme based on severity
+ */
+function getSeverityColors(severity: EventSeverity): {
+  bg: string;
+  border: string;
+  text: string;
+  emoji: string;
+} {
+  switch (severity) {
+    case EventSeverity.CRITICAL:
+      return { bg: '#dc2626', border: '#991b1b', text: '#991b1b', emoji: '🚨' };
+    case EventSeverity.HIGH:
+      return { bg: '#ea580c', border: '#c2410c', text: '#c2410c', emoji: '⚠️' };
+    case EventSeverity.MEDIUM:
+      return { bg: '#fbbf24', border: '#d97706', text: '#92400e', emoji: '⚡' };
+    default:
+      return { bg: '#fbbf24', border: '#d97706', text: '#92400e', emoji: '⚡' };
+  }
+}
+
+/**
+ * Send critical event notification email
+ */
+export async function sendCriticalEventNotification(
+  eventInfo: CriticalEventInfo,
+): Promise<boolean> {
+  const { eventType, severity, message, timestamp, details, ipAddress, userAgent } = eventInfo;
+  const colors = getSeverityColors(severity);
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.GMAIL_USER_EMAIL!;
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -148,10 +187,10 @@ export async function sendLoginNotification(userInfo: {
           background-color: #ffffff;
           border-radius: 8px;
           overflow: hidden;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
         }
         .header { 
-          background: linear-gradient(135deg, #2e59ba 0%, #60a5fa 100%);
+          background: ${colors.bg};
           color: #ffffff;
           padding: 32px 24px;
           text-align: center;
@@ -164,9 +203,18 @@ export async function sendLoginNotification(userInfo: {
           letter-spacing: 0.01em;
         }
         .header .emoji {
-          font-size: 32px;
-          margin-bottom: 8px;
+          font-size: 48px;
+          margin-bottom: 12px;
           display: block;
+        }
+        .severity-badge {
+          display: inline-block;
+          padding: 6px 16px;
+          background-color: rgba(255, 255, 255, 0.2);
+          border-radius: 20px;
+          font-size: 13px;
+          font-weight: 600;
+          margin-top: 8px;
         }
         .content { 
           padding: 32px 24px;
@@ -175,6 +223,19 @@ export async function sendLoginNotification(userInfo: {
           margin-bottom: 24px;
           color: #58585d;
           font-size: 15px;
+        }
+        .alert-message {
+          background-color: #fef2f2;
+          border-left: 4px solid ${colors.border};
+          border-radius: 4px;
+          padding: 20px;
+          margin-bottom: 24px;
+        }
+        .alert-message p {
+          margin: 0;
+          color: ${colors.text};
+          font-size: 16px;
+          font-weight: 600;
         }
         .info-section {
           background-color: #f5f5f7;
@@ -199,19 +260,7 @@ export async function sendLoginNotification(userInfo: {
         .value {
           color: #58585d;
           font-size: 14px;
-        }
-        .warning-box {
-          margin-top: 24px;
-          padding: 16px 20px;
-          background-color: #fff3cd;
-          border-left: 4px solid #ffc107;
-          border-radius: 4px;
-        }
-        .warning-box p {
-          margin: 0;
-          color: #664d03;
-          font-size: 14px;
-          line-height: 1.6;
+          word-break: break-word;
         }
         .footer { 
           padding: 24px;
@@ -236,26 +285,29 @@ export async function sendLoginNotification(userInfo: {
     <body>
       <div class="container">
         <div class="header">
-          <span class="emoji">🔔</span>
-          <h1>New Login Detected</h1>
+          <span class="emoji">${colors.emoji}</span>
+          <h1>Security Alert</h1>
+          <span class="severity-badge">${severity} PRIORITY</span>
         </div>
         <div class="content">
-          <p>A new login was detected on your website. Here are the details:</p>
+          <div class="alert-message">
+            <p>${message}</p>
+          </div>
           
           <div class="info-section">
             <div class="info-row">
-              <span class="label">User:</span>
-              <span class="value">${name || 'N/A'}</span>
+              <span class="label">Event Type:</span>
+              <span class="value">${eventType}</span>
             </div>
             
             <div class="info-row">
-              <span class="label">Email:</span>
-              <span class="value">${email}</span>
+              <span class="label">Severity:</span>
+              <span class="value">${severity}</span>
             </div>
             
             <div class="info-row">
-              <span class="label">Login Time:</span>
-              <span class="value">${loginTime.toLocaleString('en-US', {
+              <span class="label">Timestamp:</span>
+              <span class="value">${timestamp.toLocaleString('en-US', {
                 dateStyle: 'full',
                 timeStyle: 'long',
               })}</span>
@@ -276,20 +328,35 @@ export async function sendLoginNotification(userInfo: {
               userAgent
                 ? `
             <div class="info-row">
-              <span class="label">Browser/Device:</span>
+              <span class="label">User Agent:</span>
               <span class="value">${userAgent}</span>
             </div>
             `
                 : ''
             }
+            
+            ${
+              details && Object.keys(details).length > 0
+                ? Object.entries(details)
+                    .map(
+                      ([key, value]) => `
+            <div class="info-row">
+              <span class="label">${key.charAt(0).toUpperCase() + key.slice(1)}:</span>
+              <span class="value">${typeof value === 'object' ? JSON.stringify(value) : value}</span>
+            </div>
+            `,
+                    )
+                    .join('')
+                : ''
+            }
           </div>
           
-          <div class="warning-box">
-            <p>⚠️ If this wasn't you or you don't recognize this activity, please check your account security settings immediately.</p>
-          </div>
+          <p style="font-size: 14px; color: #58585d; margin-top: 20px;">
+            ${severity === EventSeverity.CRITICAL ? '🛡️ <strong>Action Required:</strong> Please review this incident immediately and take appropriate security measures.' : 'Please review and monitor your website for any suspicious activity.'}
+          </p>
         </div>
         <div class="footer">
-          <p>This is an automated notification from <a href="https://dilipdawadi.com.np">dilipdawadi.com.np</a></p>
+          <p>This is an automated security notification from <a href="https://dilipdawadi.com.np">dilipdawadi.com.np</a></p>
         </div>
       </div>
     </body>
@@ -297,21 +364,111 @@ export async function sendLoginNotification(userInfo: {
   `;
 
   const text = `
-New Login Detected
+🚨 SECURITY ALERT - ${severity} PRIORITY
 
-User: ${name || 'N/A'}
-Email: ${email}
-Login Time: ${loginTime.toLocaleString()}
+${message}
+
+Event Type: ${eventType}
+Severity: ${severity}
+Timestamp: ${timestamp.toLocaleString()}
 ${ipAddress ? `IP Address: ${ipAddress}` : ''}
-${userAgent ? `Browser/Device: ${userAgent}` : ''}
+${userAgent ? `User Agent: ${userAgent}` : ''}
+${
+  details && Object.keys(details).length > 0
+    ? `\nAdditional Details:\n${Object.entries(details)
+        .map(
+          ([key, value]) => `${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`,
+        )
+        .join('\n')}`
+    : ''
+}
 
-If this wasn't you, please check your account security immediately.
+Please review this incident immediately.
   `;
 
   return sendEmail({
-    to: email,
-    subject: `New Login Alert - ${loginTime.toLocaleDateString()}`,
+    to: adminEmail,
+    subject: `🚨 [${severity}] ${eventType} - Security Alert`,
     text,
     html,
+  });
+}
+
+/**
+ * Helper functions for common critical events
+ */
+export async function notifyUnauthorizedAccess(details: {
+  path: string;
+  ipAddress?: string;
+  userAgent?: string;
+  attemptedAction?: string;
+}): Promise<boolean> {
+  return sendCriticalEventNotification({
+    eventType: 'Unauthorized Access Attempt',
+    severity: EventSeverity.HIGH,
+    message: `Someone attempted to access a protected resource without proper authorization.`,
+    timestamp: new Date(),
+    details: {
+      path: details.path,
+      attemptedAction: details.attemptedAction || 'Access protected resource',
+    },
+    ipAddress: details.ipAddress,
+    userAgent: details.userAgent,
+  });
+}
+
+export async function notifyFailedLoginAttempts(details: {
+  email: string;
+  attemptCount: number;
+  ipAddress?: string;
+  userAgent?: string;
+}): Promise<boolean> {
+  return sendCriticalEventNotification({
+    eventType: 'Multiple Failed Login Attempts',
+    severity: EventSeverity.HIGH,
+    message: `Multiple failed login attempts detected for account: ${details.email}`,
+    timestamp: new Date(),
+    details: {
+      email: details.email,
+      attemptCount: details.attemptCount,
+      possibleBruteForce: details.attemptCount > 5 ? 'Yes' : 'No',
+    },
+    ipAddress: details.ipAddress,
+    userAgent: details.userAgent,
+  });
+}
+
+export async function notifyDatabaseError(details: {
+  operation: string;
+  error: string;
+  table?: string;
+}): Promise<boolean> {
+  return sendCriticalEventNotification({
+    eventType: 'Database Error',
+    severity: EventSeverity.CRITICAL,
+    message: `A critical database error occurred during ${details.operation}`,
+    timestamp: new Date(),
+    details: {
+      operation: details.operation,
+      table: details.table || 'N/A',
+      error: details.error,
+    },
+  });
+}
+
+export async function notifySystemError(details: {
+  component: string;
+  error: string;
+  severity?: EventSeverity;
+}): Promise<boolean> {
+  return sendCriticalEventNotification({
+    eventType: 'System Error',
+    severity: details.severity || EventSeverity.MEDIUM,
+    message: `System error in ${details.component}`,
+    timestamp: new Date(),
+    details: {
+      component: details.component,
+      error: details.error,
+    },
   });
 }

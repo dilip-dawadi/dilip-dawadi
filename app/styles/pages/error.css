@@ -1,0 +1,183 @@
+/* ========================================
+   ERROR PAGES (500, Global Errors)
+   ======================================== */
+
+.error-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - var(--header-height) - 8rem);
+  padding: 2rem;
+}
+
+.error-content {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.error-code {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: clamp(5rem, 18vw, 9rem);
+  font-weight: var(--font-weight-black);
+  line-height: 1;
+  background: linear-gradient(
+    135deg,
+    var(--color-accent) 0%,
+    color-mix(in srgb, var(--color-accent) 60%, var(--color-fg)) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  opacity: 0.9;
+  margin-bottom: 1rem;
+  animation: pulse 3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.error-title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-fg-bold);
+  margin-bottom: 0.75rem;
+  letter-spacing: var(--tracking-tight);
+}
+
+.error-message {
+  font-size: var(--text-lg);
+  color: var(--color-fg-light);
+  line-height: var(--leading-relaxed);
+  margin-bottom: 1.5rem;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.error-digest {
+  font-size: var(--text-xs);
+  color: var(--color-fg-light);
+  margin-bottom: 2rem;
+}
+
+.error-digest code {
+  display: inline-block;
+  padding: 0.25rem 0.625rem;
+  background: var(--color-accent-light);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-fg);
+  border: 1px solid var(--color-border);
+  letter-spacing: 0.5px;
+}
+
+.error-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.error-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 1rem 2.25rem;
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-white);
+  background: var(--color-accent);
+  border: none;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.error-button:hover {
+  background: var(--color-fg-bold);
+  transform: translateY(var(--lift-sm));
+  box-shadow: var(--shadow-lg);
+}
+
+.error-button:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.error-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 1rem 2.25rem;
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-fg);
+  background: transparent;
+  border: 2px solid var(--color-border-alt);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.error-link:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent-light);
+  transform: translateY(var(--lift-sm));
+}
+
+.error-link:active {
+  transform: translateY(0);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .error-page {
+    min-height: calc(100vh - var(--header-height-mobile) - 6rem);
+    padding: 1.5rem;
+  }
+
+  .error-code {
+    font-size: clamp(4rem, 15vw, 7rem);
+  }
+
+  .error-title {
+    font-size: var(--text-xl);
+  }
+
+  .error-message {
+    font-size: var(--text-base);
+  }
+
+  .error-button,
+  .error-link {
+    padding: 0.875rem 1.75rem;
+    font-size: var(--text-sm);
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .error-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}

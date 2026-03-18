@@ -3,9 +3,9 @@ import { Raleway, Source_Sans_3 } from 'next/font/google';
 import Script from 'next/script';
 import Navigation from '@/components/Template/Navigation';
 import ScrollToTop from '@/components/Template/ScrollToTop';
-import { SessionProvider } from '../src/components/SessionProvider';
-import { AUTHOR_NAME, SITE_URL, TWITTER_HANDLE } from '@/lib/utils';
 import { getExperienceText } from '@/lib/experience';
+import { AUTHOR_NAME, SITE_URL, TWITTER_HANDLE } from '@/lib/utils';
+import { SessionProvider } from '../src/components/SessionProvider';
 import './tailwind.css';
 
 const sourceSans = Source_Sans_3({
@@ -90,6 +90,7 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+  manifest: '/manifest.webmanifest',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,12 +1,12 @@
 import {
+  boolean,
+  index,
+  integer,
+  jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
-  boolean,
-  jsonb,
-  integer,
-  primaryKey,
-  index,
 } from 'drizzle-orm/pg-core';
 
 export const users = pgTable(
@@ -96,7 +96,9 @@ export const aboutContent = pgTable('about_content', {
   id: text('id').primaryKey().default('default'),
   content: text('content').notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  updatedBy: text('updated_by').references(() => users.id, { onDelete: 'cascade' }),
+  updatedBy: text('updated_by').references(() => users.id, {
+    onDelete: 'cascade',
+  }),
 });
 
 export const projects = pgTable('projects', {
@@ -124,5 +126,51 @@ export const blogPosts = pgTable('blog_posts', {
   publishedAt: timestamp('published_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  authorId: text('author_id').references(() => users.id, { onDelete: 'cascade' }),
+  authorId: text('author_id').references(() => users.id, {
+    onDelete: 'cascade',
+  }),
 });
+
+export const todos = pgTable(
+  'todos',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    description: text('description'),
+    priority: text('priority').notNull().default('medium'),
+    status: text('status').notNull().default('todo'),
+    remindAt: timestamp('remind_at', { mode: 'date' }),
+    emailReminder: boolean('email_reminder').notNull().default(true),
+    pushReminder: boolean('push_reminder').notNull().default(true),
+    reminderSentAt: timestamp('reminder_sent_at', { mode: 'date' }),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_todos_user').on(table.userId),
+    index('idx_todos_remind_at').on(table.remindAt),
+  ],
+);
+
+export const pushSubscriptions = pgTable(
+  'push_subscriptions',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    endpoint: text('endpoint').notNull().unique(),
+    keys: jsonb('keys').$type<{ p256dh: string; auth: string }>().notNull(),
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (table) => [index('idx_push_user').on(table.userId)],
+);

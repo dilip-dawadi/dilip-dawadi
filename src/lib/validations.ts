@@ -25,10 +25,50 @@ export const blogPostFormSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
   content: z.string().min(10, 'Content must be at least 10 characters'),
-  coverImage: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  coverImage: z
+    .string()
+    .url('Must be a valid URL')
+    .optional()
+    .or(z.literal('')),
   published: z.boolean().optional(),
+});
+
+const optionalDateTime = z
+  .string()
+  .optional()
+  .refine(
+    (value) => !value || !Number.isNaN(Date.parse(value)),
+    'Invalid reminder time',
+  );
+
+export const todoFormSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(200, 'Title is too long'),
+  description: z
+    .string()
+    .max(2000, 'Description is too long')
+    .optional()
+    .or(z.literal('')),
+  priority: z.enum(['low', 'medium', 'high']).default('medium'),
+  status: z.enum(['todo', 'in-progress', 'done']).default('todo'),
+  remindAt: optionalDateTime,
+  emailReminder: z.boolean().default(true),
+  pushReminder: z.boolean().default(true),
+});
+
+export const updateTodoSchema = todoFormSchema.extend({
+  id: z.string().min(1, 'Todo id is required'),
+});
+
+export const pushSubscriptionSchema = z.object({
+  endpoint: z.string().url('Invalid push endpoint'),
+  keys: z.object({
+    p256dh: z.string().min(1, 'Invalid p256dh key'),
+    auth: z.string().min(1, 'Invalid auth key'),
+  }),
 });
 
 export type AboutFormData = z.infer<typeof aboutFormSchema>;
 export type ProjectFormData = z.infer<typeof projectFormSchema>;
 export type BlogPostFormData = z.infer<typeof blogPostFormSchema>;
+export type TodoFormData = z.infer<typeof todoFormSchema>;
+export type UpdateTodoData = z.infer<typeof updateTodoSchema>;

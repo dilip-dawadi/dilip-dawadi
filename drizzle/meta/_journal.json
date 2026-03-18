@@ -43,6 +43,13 @@
       "when": 1768543762572,
       "tag": "0005_mysterious_magdalene",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1773820800000,
+      "tag": "0006_priority_planner",
+      "breakpoints": true
     }
   ]
 }

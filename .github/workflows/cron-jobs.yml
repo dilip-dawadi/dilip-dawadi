@@ -23,20 +23,19 @@ jobs:
             exit 1
           fi
 
-          REMINDER_URL="${APP_BASE_URL%/}/api/todos/reminders"
-
-          if [ -n "${CRON_SECRET:-}" ]; then
-            echo "Calling with cron authorization..."
-            http_code=$(curl -sS -o response.txt -w "%{http_code}" \
-              -X POST "$REMINDER_URL" \
-              -H "Authorization: Bearer $CRON_SECRET" \
-              -H "Accept: application/json")
-          else
-            echo "CRON_SECRET not set, calling without authorization header..."
-            http_code=$(curl -sS -o response.txt -w "%{http_code}" \
-              -X POST "$REMINDER_URL" \
-              -H "Accept: application/json")
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET secret is required"
+            exit 1
           fi
+
+          # trailingSlash=true in Next.js, so use canonical endpoint with slash.
+          REMINDER_URL="${APP_BASE_URL%/}/api/todos/reminders/"
+
+          echo "Calling with cron authorization..."
+          http_code=$(curl -sS -L --max-redirs 5 -o response.txt -w "%{http_code}" \
+            -X POST "$REMINDER_URL" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Accept: application/json")
 
           echo "HTTP status: $http_code"
           cat response.txt || true

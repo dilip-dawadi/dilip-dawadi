@@ -1,7 +1,7 @@
 {
   "name": "Dilip Priority Planner",
   "short_name": "Planner",
-  "start_url": "/todo",
+  "start_url": "/admin/dashboard/todo",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",

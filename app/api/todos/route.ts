@@ -23,7 +23,7 @@ function parseReminderDate(remindAt?: string): Date | null {
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.user.role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -38,7 +38,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.user.role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -54,6 +54,8 @@ export async function POST(request: Request) {
         description: parsed.description || null,
         priority: parsed.priority,
         status: parsed.status,
+        recurrence: parsed.recurrence,
+        repeatEveryDays: parsed.repeatEveryDays,
         remindAt: parseReminderDate(parsed.remindAt),
         emailReminder: parsed.emailReminder,
         pushReminder: parsed.pushReminder,
@@ -63,16 +65,13 @@ export async function POST(request: Request) {
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
     console.error('Failed to create todo:', error);
-    return NextResponse.json(
-      { error: 'Failed to create todo' },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: 'Failed to create todo' }, { status: 400 });
   }
 }
 
 export async function PUT(request: Request) {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.user.role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -87,6 +86,8 @@ export async function PUT(request: Request) {
         description: parsed.description || null,
         priority: parsed.priority,
         status: parsed.status,
+        recurrence: parsed.recurrence,
+        repeatEveryDays: parsed.repeatEveryDays,
         remindAt: parseReminderDate(parsed.remindAt),
         emailReminder: parsed.emailReminder,
         pushReminder: parsed.pushReminder,
@@ -102,16 +103,13 @@ export async function PUT(request: Request) {
     return NextResponse.json(updated, { status: 200 });
   } catch (error) {
     console.error('Failed to update todo:', error);
-    return NextResponse.json(
-      { error: 'Failed to update todo' },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: 'Failed to update todo' }, { status: 400 });
   }
 }
 
 export async function DELETE(request: Request) {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.user.role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

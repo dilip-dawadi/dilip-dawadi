@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.user.role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -39,16 +39,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error('Failed to save push subscription:', error);
-    return NextResponse.json(
-      { error: 'Invalid subscription payload' },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: 'Invalid subscription payload' }, { status: 400 });
   }
 }
 
 export async function DELETE(request: Request) {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user?.id || session.user.role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -56,19 +53,13 @@ export async function DELETE(request: Request) {
   const endpoint = searchParams.get('endpoint');
 
   if (!endpoint) {
-    return NextResponse.json(
-      { error: 'Endpoint is required' },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: 'Endpoint is required' }, { status: 400 });
   }
 
   await db
     .delete(pushSubscriptions)
     .where(
-      and(
-        eq(pushSubscriptions.userId, session.user.id),
-        eq(pushSubscriptions.endpoint, endpoint),
-      ),
+      and(eq(pushSubscriptions.userId, session.user.id), eq(pushSubscriptions.endpoint, endpoint)),
     );
 
   return NextResponse.json({ success: true }, { status: 200 });

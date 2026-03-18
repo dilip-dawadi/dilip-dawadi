@@ -37,24 +37,30 @@ Edit `.env` and configure the following variables:
 #### Required Variables:
 
 **Database Configuration:**
+
 ```env
 DATABASE_URL=postgresql://username:password@host:port/database?sslmode=require
 ```
+
 Get a free PostgreSQL database from [Neon](https://neon.tech) or [Supabase](https://supabase.com)
 
 **Authentication Secrets:**
+
 ```env
 BETTER_AUTH_SECRET=your-random-secret-key-here-min-32-chars
 ```
+
 Generate with: `openssl rand -base64 32`
 
 **URLs:**
+
 ```env
 BETTER_AUTH_URL=http://localhost:3000
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 **Admin Credentials:**
+
 ```env
 ADMIN_EMAIL=admin@yourdomain.com
 ADMIN_PASSWORD=your-strong-password
@@ -63,13 +69,35 @@ ADMIN_PASSWORD=your-strong-password
 #### Optional Variables:
 
 **Google OAuth (for Google Sign-In):**
+
 ```env
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
 ```
+
 Get from [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
 
+**Push Notifications (Todo Planner):**
+Generate keys:
+
+```bash
+pnpm exec web-push generate-vapid-keys
+```
+
+Add to `.env`:
+
+```env
+VAPID_PUBLIC_KEY=your-vapid-public-key
+VAPID_PRIVATE_KEY=your-vapid-private-key
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your-vapid-public-key
+VAPID_SUBJECT=mailto:admin@yourdomain.com
+CRON_SECRET=your-random-cron-secret
+```
+
+After updating env vars, restart the dev server.
+
 **Google Analytics:**
+
 ```env
 NEXT_PUBLIC_GA_TRACKING_ID=G-XXXXXXXXXX
 ```
@@ -99,6 +127,7 @@ Visit [http://localhost:3000](http://localhost:3000)
 ## 🎯 Features
 
 ### Public Pages
+
 - **Home** (`/`) - Hero section with introduction
 - **About** (`/about`) - About me page with markdown content
 - **Projects** (`/projects`) - Portfolio projects showcase
@@ -108,9 +137,11 @@ Visit [http://localhost:3000](http://localhost:3000)
 - **Stats** (`/stats`) - Personal statistics
 
 ### Admin Dashboard
+
 Access at `/admin` with your admin credentials.
 
 **Manage Content:**
+
 - **About Page** - Edit markdown content for about page
 - **Projects** - Create, edit, delete portfolio projects
 - **Blog Posts** - Write and publish blog articles with markdown
@@ -120,6 +151,7 @@ Access at `/admin` with your admin credentials.
 ### 1. Login
 
 Navigate to `/admin` and sign in with:
+
 - Email: Your configured `ADMIN_EMAIL`
 - Password: Your configured `ADMIN_PASSWORD`
 
@@ -167,6 +199,7 @@ Or use Google Sign-In if configured.
 ### Update Personal Information
 
 Edit files in `src/data/`:
+
 - `about.ts` - About page default content
 - `contact.ts` - Contact information and social links
 - `projects.ts` - Initial projects data
@@ -178,6 +211,7 @@ Edit files in `src/data/`:
 ### Styling
 
 The site uses CSS custom properties for theming. Edit:
+
 - `app/styles/tokens/colors.css` - Color palette
 - `app/styles/dark-mode.css` - Dark mode colors
 
@@ -195,11 +229,13 @@ Theme automatically switches based on user preference.
 ### Other Platforms
 
 1. Build the project:
+
 ```bash
 npm run build
 ```
 
 2. Start production server:
+
 ```bash
 npm start
 ```
@@ -231,16 +267,19 @@ npm run db:seed      # Seed database with initial data
 ## 🐛 Troubleshooting
 
 **Database Connection Issues:**
+
 - Verify `DATABASE_URL` is correct
 - Check if your IP is whitelisted (Neon/Supabase)
 - Ensure SSL mode is set correctly
 
 **Authentication Not Working:**
+
 - Regenerate `BETTER_AUTH_SECRET`
 - Verify URLs match your domain
 - Check admin credentials are correct
 
 **Google OAuth Issues:**
+
 - Verify redirect URI in Google Console
 - Ensure OAuth consent screen is configured
 - Check client ID and secret are correct

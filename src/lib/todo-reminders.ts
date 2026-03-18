@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, lte, ne } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, lte, ne } from 'drizzle-orm';
 import { db } from '@/db';
 import { pushSubscriptions, todos, users } from '@/db/schema';
 import { sendEmail } from '@/lib/gmail';
@@ -11,8 +11,46 @@ interface ReminderDispatchResult {
   pushSent: number;
 }
 
+type RecurrenceType = 'once' | 'daily' | 'weekly' | 'every-n-days';
+
 function priorityLabel(priority: string): string {
   return priority.charAt(0).toUpperCase() + priority.slice(1);
+}
+
+function recurrenceLabel(recurrence: RecurrenceType, repeatEveryDays: number): string {
+  if (recurrence === 'daily') return 'Daily';
+  if (recurrence === 'weekly') return 'Weekly';
+  if (recurrence === 'every-n-days') return `Every ${repeatEveryDays} days`;
+  return 'One-time';
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function getNextReminderDate(
+  recurrence: RecurrenceType,
+  remindAt: Date | null,
+  now: Date,
+  repeatEveryDays: number,
+): Date | null {
+  if (!remindAt || recurrence === 'once') {
+    return null;
+  }
+
+  const next = new Date(remindAt);
+  const stepDays = recurrence === 'daily' ? 1 : recurrence === 'weekly' ? 7 : repeatEveryDays;
+
+  while (next <= now) {
+    next.setDate(next.getDate() + stepDays);
+  }
+
+  return next;
 }
 
 export async function dispatchDueTodoReminders(): Promise<ReminderDispatchResult> {
@@ -25,6 +63,8 @@ export async function dispatchDueTodoReminders(): Promise<ReminderDispatchResult
       title: todos.title,
       description: todos.description,
       priority: todos.priority,
+      recurrence: todos.recurrence,
+      repeatEveryDays: todos.repeatEveryDays,
       remindAt: todos.remindAt,
       emailReminder: todos.emailReminder,
       pushReminder: todos.pushReminder,
@@ -33,13 +73,7 @@ export async function dispatchDueTodoReminders(): Promise<ReminderDispatchResult
     })
     .from(todos)
     .innerJoin(users, eq(users.id, todos.userId))
-    .where(
-      and(
-        isNull(todos.reminderSentAt),
-        lte(todos.remindAt, now),
-        ne(todos.status, 'done'),
-      ),
-    );
+    .where(and(isNotNull(todos.remindAt), lte(todos.remindAt, now), ne(todos.status, 'done')));
 
   if (dueTodos.length === 0) {
     return { scanned: 0, notified: 0, emailSent: 0, pushSent: 0 };
@@ -69,42 +103,81 @@ export async function dispatchDueTodoReminders(): Promise<ReminderDispatchResult
   let pushSent = 0;
   const staleSubscriptionIds = new Set<string>();
 
+  const todosByUser = new Map<string, typeof dueTodos>();
   for (const todo of dueTodos) {
-    let emailOk = !todo.emailReminder;
-    let pushOk = !todo.pushReminder;
+    const list = todosByUser.get(todo.userId) || [];
+    list.push(todo);
+    todosByUser.set(todo.userId, list);
+  }
 
-    if (todo.emailReminder && todo.email) {
-      const subject = `Reminder: ${todo.title}`;
+  for (const [userId, userTodos] of todosByUser.entries()) {
+    const userEmail = userTodos[0]?.email;
+    const userName = userTodos[0]?.name || 'there';
+
+    const emailTodos = userTodos.filter((todo) => todo.emailReminder);
+    const pushTodos = userTodos.filter((todo) => todo.pushReminder);
+
+    let emailBatchOk = false;
+    let pushBatchOk = false;
+
+    if (emailTodos.length > 0 && userEmail) {
+      const taskItemsHtml = emailTodos
+        .map(
+          (todo) => `
+          <li style="margin-bottom: 10px;">
+            <strong>${escapeHtml(todo.title)}</strong><br />
+            Priority: ${priorityLabel(todo.priority)}<br />
+            Repeat: ${recurrenceLabel(todo.recurrence as RecurrenceType, todo.repeatEveryDays)}<br />
+            ${todo.description ? `Details: ${escapeHtml(todo.description)}` : ''}
+          </li>
+        `,
+        )
+        .join('');
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+      const subject = `Life Planner: ${emailTodos.length} reminder${emailTodos.length > 1 ? 's' : ''} due today`;
+
       const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto;">
-          <h2 style="margin-bottom: 12px;">Task Reminder</h2>
-          <p style="margin-bottom: 16px;">Hi ${todo.name || 'there'}, your task is due now.</p>
+        <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto;">
+          <h2 style="margin-bottom: 8px;">Daily Life Reminder Summary</h2>
+          <p style="margin-bottom: 16px;">Hi ${escapeHtml(userName)}, here are your due tasks.</p>
+
           <div style="border: 1px solid #d9dde6; border-radius: 8px; padding: 16px; background: #f9fbff;">
-            <p style="margin: 0 0 8px;"><strong>Title:</strong> ${todo.title}</p>
-            <p style="margin: 0 0 8px;"><strong>Priority:</strong> ${priorityLabel(todo.priority)}</p>
-            <p style="margin: 0;"><strong>Description:</strong> ${todo.description || 'No description provided.'}</p>
+            <ul style="padding-left: 18px; margin: 0;">${taskItemsHtml}</ul>
           </div>
+
           <p style="margin-top: 16px;">
-            Open your task board: <a href="${process.env.NEXT_PUBLIC_APP_URL || ''}/todo">${process.env.NEXT_PUBLIC_APP_URL || ''}/todo</a>
+            Open your planner: <a href="${appUrl}/admin/dashboard/todo">${appUrl}/admin/dashboard/todo</a>
           </p>
         </div>
       `;
 
-      emailOk = await sendEmail({
-        to: todo.email,
+      const textLines = emailTodos.map(
+        (todo, index) =>
+          `${index + 1}. ${todo.title} (${priorityLabel(todo.priority)}, ${recurrenceLabel(todo.recurrence as RecurrenceType, todo.repeatEveryDays)})`,
+      );
+
+      emailBatchOk = await sendEmail({
+        to: userEmail,
         subject,
-        text: `${todo.title} is due now. Priority: ${todo.priority}.`,
+        text: `Daily summary:\n${textLines.join('\n')}`,
         html,
       });
 
-      if (emailOk) {
+      if (emailBatchOk) {
         emailSent += 1;
       }
     }
 
-    if (todo.pushReminder) {
-      const userSubs = subscriptionsByUser.get(todo.userId) || [];
+    if (pushTodos.length > 0) {
+      const userSubs = subscriptionsByUser.get(userId) || [];
+
       if (userSubs.length > 0) {
+        const previewTitles = pushTodos
+          .slice(0, 2)
+          .map((todo) => todo.title)
+          .join(' | ');
+
         const pushResults = await Promise.all(
           userSubs.map((sub) =>
             sendPushNotification(
@@ -113,19 +186,18 @@ export async function dispatchDueTodoReminders(): Promise<ReminderDispatchResult
                 keys: sub.keys as { p256dh: string; auth: string },
               },
               {
-                title: `Priority: ${priorityLabel(todo.priority)}`,
-                body: todo.title,
-                tag: `todo-${todo.id}`,
-                url: '/todo',
+                title: `You have ${pushTodos.length} due task${pushTodos.length > 1 ? 's' : ''}`,
+                body: previewTitles || 'Open planner to review your tasks.',
+                tag: `todo-summary-${userId}`,
+                url: '/admin/dashboard/todo',
               },
             ).then((result) => ({ ...result, subscriptionId: sub.id })),
           ),
         );
 
-        const successfulPush = pushResults.some((result) => result.ok);
-        pushOk = successfulPush;
+        pushBatchOk = pushResults.some((result) => result.ok);
 
-        if (successfulPush) {
+        if (pushBatchOk) {
           pushSent += 1;
         }
 
@@ -134,21 +206,32 @@ export async function dispatchDueTodoReminders(): Promise<ReminderDispatchResult
             staleSubscriptionIds.add(result.subscriptionId);
           }
         }
-      } else {
-        pushOk = false;
       }
     }
 
-    if (emailOk || pushOk) {
-      await db
-        .update(todos)
-        .set({
-          reminderSentAt: now,
-          updatedAt: now,
-        })
-        .where(eq(todos.id, todo.id));
+    for (const todo of userTodos) {
+      const emailOk = !todo.emailReminder || emailBatchOk;
+      const pushOk = !todo.pushReminder || pushBatchOk;
 
-      notified += 1;
+      if (emailOk || pushOk) {
+        const nextReminderAt = getNextReminderDate(
+          todo.recurrence as RecurrenceType,
+          todo.remindAt,
+          now,
+          todo.repeatEveryDays,
+        );
+
+        await db
+          .update(todos)
+          .set({
+            remindAt: nextReminderAt,
+            reminderSentAt: now,
+            updatedAt: now,
+          })
+          .where(eq(todos.id, todo.id));
+
+        notified += 1;
+      }
     }
   }
 

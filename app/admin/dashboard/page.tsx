@@ -1,9 +1,9 @@
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { signOut, useSession } from 'next-auth/react';
+import { useEffect } from 'react';
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
@@ -59,6 +59,13 @@ export default function AdminDashboard() {
       href: '/admin/dashboard/writing',
       icon: '✍️',
       color: 'bg-purple-500',
+    },
+    {
+      title: 'Planner',
+      description: 'Manage daily life tasks and recurring reminders',
+      href: '/admin/dashboard/todo',
+      icon: '🧭',
+      color: 'bg-emerald-500',
     },
   ];
 

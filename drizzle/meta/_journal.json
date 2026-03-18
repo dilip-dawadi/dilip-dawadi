@@ -50,6 +50,13 @@
       "when": 1773820800000,
       "tag": "0006_priority_planner",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1773822000000,
+      "tag": "0007_repeating_reminders",
+      "breakpoints": true
     }
   ]
 }

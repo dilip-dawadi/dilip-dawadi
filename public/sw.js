@@ -2,7 +2,7 @@ self.addEventListener('push', (event) => {
   let payload = {
     title: 'Task reminder',
     body: 'You have a due task.',
-    url: '/todo',
+    url: '/admin/dashboard/todo',
     tag: 'todo-reminder',
   };
 
@@ -21,7 +21,7 @@ self.addEventListener('push', (event) => {
       badge: '/images/favicon/favicon.png',
       tag: payload.tag,
       data: {
-        url: payload.url || '/todo',
+        url: payload.url || '/admin/dashboard/todo',
       },
     }),
   );
@@ -32,7 +32,7 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      const targetUrl = event.notification.data?.url || '/todo';
+      const targetUrl = event.notification.data?.url || '/admin/dashboard/todo';
 
       for (const client of windowClients) {
         if (client.url.includes(targetUrl) && 'focus' in client) {

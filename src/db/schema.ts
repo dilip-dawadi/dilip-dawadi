@@ -144,6 +144,8 @@ export const todos = pgTable(
     description: text('description'),
     priority: text('priority').notNull().default('medium'),
     status: text('status').notNull().default('todo'),
+    recurrence: text('recurrence').notNull().default('once'),
+    repeatEveryDays: integer('repeat_every_days').notNull().default(1),
     remindAt: timestamp('remind_at', { mode: 'date' }),
     emailReminder: boolean('email_reminder').notNull().default(true),
     pushReminder: boolean('push_reminder').notNull().default(true),

@@ -34,10 +34,6 @@ const routes: Route[] = [
     label: 'Archive',
     path: '/projects',
   },
-  {
-    label: 'Planner',
-    path: '/todo',
-  },
 ];
 
 export default routes;

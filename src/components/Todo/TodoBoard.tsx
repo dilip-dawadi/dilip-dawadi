@@ -2,9 +2,14 @@
 
 import { signIn, useSession } from 'next-auth/react';
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 type Priority = 'low' | 'medium' | 'high';
 type TodoStatus = 'todo' | 'in-progress' | 'done';
+type Recurrence = 'once' | 'daily' | 'weekly' | 'every-n-days';
 
 interface Todo {
   id: string;
@@ -12,6 +17,8 @@ interface Todo {
   description: string | null;
   priority: Priority;
   status: TodoStatus;
+  recurrence: Recurrence;
+  repeatEveryDays: number;
   remindAt: string | null;
   emailReminder: boolean;
   pushReminder: boolean;
@@ -22,6 +29,8 @@ interface TodoFormState {
   title: string;
   description: string;
   priority: Priority;
+  recurrence: Recurrence;
+  repeatEveryDays: number;
   remindAt: string;
   emailReminder: boolean;
   pushReminder: boolean;
@@ -34,15 +43,17 @@ const statusLabels: Record<TodoStatus, string> = {
 };
 
 const priorityLabels: Record<Priority, string> = {
-  low: 'Low',
-  medium: 'Medium',
-  high: 'High',
+  high: 'Urgent',
+  medium: 'Important',
+  low: 'Normal',
 };
 
 const defaultFormState: TodoFormState = {
   title: '',
   description: '',
   priority: 'medium',
+  recurrence: 'once',
+  repeatEveryDays: 5,
   remindAt: '',
   emailReminder: true,
   pushReminder: true,
@@ -75,6 +86,35 @@ function toReadableDate(dateString: string | null): string {
   return date.toLocaleString();
 }
 
+function scheduleText(todo: Todo): string {
+  const base = toReadableDate(todo.remindAt);
+
+  if (!todo.remindAt) {
+    return 'No reminder set';
+  }
+
+  const remindDate = new Date(todo.remindAt);
+  const isOverdue = !Number.isNaN(remindDate.getTime()) && remindDate <= new Date();
+
+  if (isOverdue && todo.status !== 'done') {
+    return `Overdue since ${base} (will roll to next schedule after daily reminder run)`;
+  }
+
+  if (todo.recurrence === 'daily') {
+    return `Daily at ${base}`;
+  }
+
+  if (todo.recurrence === 'weekly') {
+    return `Weekly, next: ${base}`;
+  }
+
+  if (todo.recurrence === 'every-n-days') {
+    return `Every ${todo.repeatEveryDays} days, next: ${base}`;
+  }
+
+  return `One-time on ${base}`;
+}
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -92,6 +132,8 @@ export default function TodoBoard() {
   const [form, setForm] = useState<TodoFormState>(defaultFormState);
   const [feedback, setFeedback] = useState<string>('');
   const [pushEnabled, setPushEnabled] = useState(false);
+
+  const editingTodo = editingTodoId ? todos.find((todo) => todo.id === editingTodoId) : null;
 
   const groupedTodos = useMemo(() => {
     return {
@@ -152,7 +194,9 @@ export default function TodoBoard() {
 
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!vapidPublicKey) {
-      setFeedback('Push notifications are not configured yet. Add NEXT_PUBLIC_VAPID_PUBLIC_KEY.');
+      setFeedback(
+        'Push is not configured. Add NEXT_PUBLIC_VAPID_PUBLIC_KEY in .env and restart the app.',
+      );
       return;
     }
 
@@ -198,6 +242,8 @@ export default function TodoBoard() {
       title: todo.title,
       description: todo.description || '',
       priority: todo.priority,
+      recurrence: todo.recurrence,
+      repeatEveryDays: todo.repeatEveryDays,
       remindAt: toDateTimeInputValue(todo.remindAt),
       emailReminder: todo.emailReminder,
       pushReminder: todo.pushReminder,
@@ -219,21 +265,30 @@ export default function TodoBoard() {
       return;
     }
 
+    if (form.recurrence !== 'once' && !form.remindAt) {
+      setFeedback('Please set reminder date and time for recurring reminders.');
+      return;
+    }
+
     setSaving(true);
 
     try {
+      const method = editingTodo ? 'PUT' : 'POST';
       const payload = {
+        id: editingTodo?.id,
         title: form.title.trim(),
         description: form.description.trim(),
         priority: form.priority,
-        status: 'todo' as TodoStatus,
+        status: (editingTodo?.status || 'todo') as TodoStatus,
+        recurrence: form.recurrence,
+        repeatEveryDays: form.recurrence === 'every-n-days' ? form.repeatEveryDays : 1,
         remindAt: form.remindAt ? new Date(form.remindAt).toISOString() : undefined,
         emailReminder: form.emailReminder,
         pushReminder: form.pushReminder,
       };
 
       const res = await fetch('/api/todos', {
-        method: 'POST',
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
@@ -242,35 +297,39 @@ export default function TodoBoard() {
         throw new Error('Failed to save task');
       }
 
-      const created = (await res.json()) as Todo;
-      setTodos((current) => [created, ...current]);
+      const saved = (await res.json()) as Todo;
+
+      if (editingTodo) {
+        setTodos((current) => current.map((todo) => (todo.id === saved.id ? saved : todo)));
+      } else {
+        setTodos((current) => [saved, ...current]);
+      }
+
       setForm(defaultFormState);
-      setFeedback('Task created successfully.');
+      setEditingTodoId(null);
+      setFeedback(editingTodo ? 'Task updated.' : 'Task created successfully.');
     } catch (error) {
       console.error(error);
-      setFeedback('Could not create task.');
+      setFeedback(editingTodo ? 'Could not update task.' : 'Could not create task.');
     } finally {
       setSaving(false);
     }
   }
 
-  async function updateTodo(todo: Todo, status: TodoStatus) {
+  async function updateTodoStatus(todo: Todo, status: TodoStatus) {
     setFeedback('');
 
-    const isEditing = editingTodoId === todo.id;
     const payload = {
       id: todo.id,
-      title: isEditing ? form.title.trim() : todo.title,
-      description: isEditing ? form.description.trim() : todo.description || '',
-      priority: isEditing ? form.priority : todo.priority,
+      title: todo.title,
+      description: todo.description || '',
+      priority: todo.priority,
       status,
-      remindAt: isEditing
-        ? form.remindAt
-          ? new Date(form.remindAt).toISOString()
-          : undefined
-        : todo.remindAt || undefined,
-      emailReminder: isEditing ? form.emailReminder : todo.emailReminder,
-      pushReminder: isEditing ? form.pushReminder : todo.pushReminder,
+      recurrence: todo.recurrence,
+      repeatEveryDays: todo.repeatEveryDays,
+      remindAt: todo.remindAt || undefined,
+      emailReminder: todo.emailReminder,
+      pushReminder: todo.pushReminder,
     };
 
     const res = await fetch('/api/todos', {
@@ -286,11 +345,6 @@ export default function TodoBoard() {
 
     const updated = (await res.json()) as Todo;
     setTodos((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-
-    if (isEditing) {
-      cancelEdit();
-      setFeedback('Task updated.');
-    }
   }
 
   async function deleteTodo(id: string) {
@@ -323,7 +377,10 @@ export default function TodoBoard() {
       <section className="todo-auth-card">
         <h2>Sign in required</h2>
         <p>Sign in to create tasks and receive reminder emails or push notifications.</p>
-        <button type="button" onClick={() => signIn('google', { callbackUrl: '/todo' })}>
+        <button
+          type="button"
+          onClick={() => signIn('google', { callbackUrl: '/admin/dashboard/todo' })}
+        >
           Sign in with Google
         </button>
       </section>
@@ -332,13 +389,19 @@ export default function TodoBoard() {
 
   return (
     <section className="todo-page">
-      <header className="todo-header">
+      <header className="todo-header hero-life">
         <div>
-          <h1 className="page-title">Priority Planner</h1>
+          <h1 className="page-title">Life Planner</h1>
           <p className="page-subtitle">
-            Keep your top tasks organized and get reminders by email or browser push.
+            Build habits, track promises, and keep life goals visible with repeating reminders.
           </p>
           <p className="todo-user-email">Signed in as {session?.user?.email}</p>
+          <p className="todo-tip">
+            Examples: "Ask Sagar for money back", "Evening study routine", "Go for run"
+          </p>
+          <p className="todo-summary-mode">
+            Daily summary mode: due tasks are grouped into one email.
+          </p>
         </div>
 
         <button type="button" className="todo-push-btn" onClick={enablePushNotifications}>
@@ -346,102 +409,164 @@ export default function TodoBoard() {
         </button>
       </header>
 
-      <form className="todo-form" onSubmit={saveTodo}>
-        <div className="todo-form-grid">
-          <label htmlFor="todo-title">
-            Title
-            <input
-              id="todo-title"
-              value={form.title}
-              onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
-              placeholder="Finish landing page"
-              maxLength={200}
-              required
-            />
-          </label>
+      <Card className="todo-form-card">
+        <CardHeader>
+          <CardTitle>{editingTodo ? 'Edit Task Routine' : 'Create Life Task'}</CardTitle>
+          <CardDescription>
+            Choose when to remind yourself: one-time, daily, weekly, or every N days.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form className="todo-form" onSubmit={saveTodo}>
+            <div className="todo-form-grid">
+              <div>
+                <Label htmlFor="todo-title">Task title</Label>
+                <Input
+                  id="todo-title"
+                  value={form.title}
+                  onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
+                  placeholder="Ask friend to return money"
+                  maxLength={200}
+                  required
+                />
+              </div>
 
-          <label htmlFor="todo-priority">
-            Priority
-            <select
-              id="todo-priority"
-              value={form.priority}
-              onChange={(event) =>
-                setForm((prev) => ({
-                  ...prev,
-                  priority: event.target.value as Priority,
-                }))
-              }
-            >
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-          </label>
+              <div>
+                <Label htmlFor="todo-priority">Priority level</Label>
+                <select
+                  id="todo-priority"
+                  className="todo-native-select"
+                  value={form.priority}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      priority: event.target.value as Priority,
+                    }))
+                  }
+                >
+                  <option value="high">Urgent</option>
+                  <option value="medium">Important</option>
+                  <option value="low">Normal</option>
+                </select>
+              </div>
 
-          <label htmlFor="todo-remind-at">
-            Reminder time
-            <input
-              id="todo-remind-at"
-              type="datetime-local"
-              value={form.remindAt}
-              onChange={(event) => setForm((prev) => ({ ...prev, remindAt: event.target.value }))}
-            />
-          </label>
-        </div>
+              <div>
+                <Label htmlFor="todo-remind-at">Start date and time</Label>
+                <Input
+                  id="todo-remind-at"
+                  type="datetime-local"
+                  value={form.remindAt}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      remindAt: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
 
-        <label htmlFor="todo-description" className="todo-description-field">
-          Description
-          <textarea
-            id="todo-description"
-            value={form.description}
-            onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
-            rows={3}
-            placeholder="Add useful details for this task"
-            maxLength={2000}
-          />
-        </label>
+            <div className="todo-form-grid todo-form-grid--schedule">
+              <div>
+                <Label htmlFor="todo-recurrence">Repeat</Label>
+                <select
+                  id="todo-recurrence"
+                  className="todo-native-select"
+                  value={form.recurrence}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      recurrence: event.target.value as Recurrence,
+                    }))
+                  }
+                >
+                  <option value="once">One-time</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="every-n-days">Every N days</option>
+                </select>
+              </div>
 
-        <div className="todo-options-row">
-          <label>
-            <input
-              type="checkbox"
-              checked={form.emailReminder}
-              onChange={(event) =>
-                setForm((prev) => ({
-                  ...prev,
-                  emailReminder: event.target.checked,
-                }))
-              }
-            />
-            Email reminder
-          </label>
+              {form.recurrence === 'every-n-days' && (
+                <div>
+                  <Label htmlFor="todo-repeat-days">Repeat every (days)</Label>
+                  <Input
+                    id="todo-repeat-days"
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={form.repeatEveryDays}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        repeatEveryDays: Number(event.target.value || 1),
+                      }))
+                    }
+                  />
+                </div>
+              )}
+            </div>
 
-          <label>
-            <input
-              type="checkbox"
-              checked={form.pushReminder}
-              onChange={(event) =>
-                setForm((prev) => ({
-                  ...prev,
-                  pushReminder: event.target.checked,
-                }))
-              }
-            />
-            Push reminder
-          </label>
-        </div>
+            <div className="todo-description-field">
+              <Label htmlFor="todo-description">Details</Label>
+              <Textarea
+                id="todo-description"
+                value={form.description}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    description: event.target.value,
+                  }))
+                }
+                rows={3}
+                placeholder="Why this matters and what success looks like"
+                maxLength={2000}
+              />
+            </div>
 
-        <div className="todo-form-actions">
-          <button type="submit" disabled={saving}>
-            {saving ? 'Saving...' : 'Add Task'}
-          </button>
-          {editingTodoId && (
-            <button type="button" onClick={cancelEdit} className="secondary-action">
-              Cancel edit
-            </button>
-          )}
-        </div>
-      </form>
+            <div className="todo-options-row">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={form.emailReminder}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      emailReminder: event.target.checked,
+                    }))
+                  }
+                />
+                Email reminder
+              </label>
+
+              <label>
+                <input
+                  type="checkbox"
+                  checked={form.pushReminder}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      pushReminder: event.target.checked,
+                    }))
+                  }
+                />
+                Push reminder
+              </label>
+            </div>
+
+            <div className="todo-form-actions">
+              <button type="submit" disabled={saving}>
+                {saving ? 'Saving...' : editingTodo ? 'Update Task' : 'Add Task'}
+              </button>
+              {editingTodo && (
+                <button type="button" onClick={cancelEdit} className="secondary-action">
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
       {feedback && <p className="todo-feedback">{feedback}</p>}
 
@@ -469,29 +594,26 @@ export default function TodoBoard() {
                         {todo.description && <p>{todo.description}</p>}
 
                         <div className="todo-meta">
-                          <span>{toReadableDate(todo.remindAt)}</span>
+                          <span>{scheduleText(todo)}</span>
                           {todo.reminderSentAt && <span>Reminder sent</span>}
                         </div>
 
                         <div className="todo-card-actions">
                           <select
+                            className="todo-native-select"
                             value={todo.status}
-                            onChange={(event) => updateTodo(todo, event.target.value as TodoStatus)}
+                            onChange={(event) =>
+                              updateTodoStatus(todo, event.target.value as TodoStatus)
+                            }
                           >
                             <option value="todo">To Do</option>
                             <option value="in-progress">In Progress</option>
                             <option value="done">Done</option>
                           </select>
 
-                          {isEditing ? (
-                            <button type="button" onClick={() => updateTodo(todo, todo.status)}>
-                              Save
-                            </button>
-                          ) : (
-                            <button type="button" onClick={() => startEdit(todo)}>
-                              Edit
-                            </button>
-                          )}
+                          <button type="button" onClick={() => startEdit(todo)}>
+                            {isEditing ? 'Editing' : 'Edit'}
+                          </button>
 
                           <button
                             type="button"

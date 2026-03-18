@@ -517,6 +517,7 @@ export default function TodoBoard() {
                   <Input
                     id="todo-remind-date"
                     type="date"
+                    className="block w-full min-w-0 max-w-full py-0"
                     value={form.remindDate}
                     onChange={(event) =>
                       setForm((prev) => ({
@@ -528,6 +529,7 @@ export default function TodoBoard() {
                   <Input
                     id="todo-remind-time"
                     type="time"
+                    className="block w-full min-w-0 max-w-full py-0"
                     value={form.remindTime}
                     onChange={(event) =>
                       setForm((prev) => ({

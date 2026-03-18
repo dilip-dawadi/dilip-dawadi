@@ -141,6 +141,23 @@
   gap: 0.5rem;
 }
 
+.todo-reminder-grid input[type='date'],
+.todo-reminder-grid input[type='time'] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.todo-reminder-grid input[type='date']::-webkit-datetime-edit,
+.todo-reminder-grid input[type='time']::-webkit-datetime-edit {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+}
+
 .todo-options-row {
   margin-top: 0.2rem;
   display: flex;

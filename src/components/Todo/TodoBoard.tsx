@@ -31,7 +31,8 @@ interface TodoFormState {
   priority: Priority;
   recurrence: Recurrence;
   repeatEveryDays: number;
-  remindAt: string;
+  remindDate: string;
+  remindTime: string;
   emailReminder: boolean;
   pushReminder: boolean;
 }
@@ -54,23 +55,42 @@ const defaultFormState: TodoFormState = {
   priority: 'medium',
   recurrence: 'once',
   repeatEveryDays: 5,
-  remindAt: '',
+  remindDate: '',
+  remindTime: '',
   emailReminder: true,
   pushReminder: true,
 };
 
-function toDateTimeInputValue(dateString: string | null): string {
+function toLocalReminderParts(dateString: string | null): { date: string; time: string } {
   if (!dateString) {
-    return '';
+    return { date: '', time: '' };
   }
 
   const date = new Date(dateString);
   if (Number.isNaN(date.getTime())) {
-    return '';
+    return { date: '', time: '' };
   }
 
   const offsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+  const localIso = new Date(date.getTime() - offsetMs).toISOString();
+
+  return {
+    date: localIso.slice(0, 10),
+    time: localIso.slice(11, 16),
+  };
+}
+
+function toReminderIso(remindDate: string, remindTime: string): string | undefined {
+  if (!remindDate || !remindTime) {
+    return undefined;
+  }
+
+  const parsed = new Date(`${remindDate}T${remindTime}`);
+  if (Number.isNaN(parsed.getTime())) {
+    return undefined;
+  }
+
+  return parsed.toISOString();
 }
 
 function toReadableDate(dateString: string | null): string {
@@ -237,6 +257,8 @@ export default function TodoBoard() {
   }
 
   function startEdit(todo: Todo) {
+    const remindParts = toLocalReminderParts(todo.remindAt);
+
     setEditingTodoId(todo.id);
     setForm({
       title: todo.title,
@@ -244,7 +266,8 @@ export default function TodoBoard() {
       priority: todo.priority,
       recurrence: todo.recurrence,
       repeatEveryDays: todo.repeatEveryDays,
-      remindAt: toDateTimeInputValue(todo.remindAt),
+      remindDate: remindParts.date,
+      remindTime: remindParts.time,
       emailReminder: todo.emailReminder,
       pushReminder: todo.pushReminder,
     });
@@ -265,7 +288,12 @@ export default function TodoBoard() {
       return;
     }
 
-    if (form.recurrence !== 'once' && !form.remindAt) {
+    if ((form.remindDate && !form.remindTime) || (!form.remindDate && form.remindTime)) {
+      setFeedback('Please select both reminder date and time.');
+      return;
+    }
+
+    if (form.recurrence !== 'once' && (!form.remindDate || !form.remindTime)) {
       setFeedback('Please set reminder date and time for recurring reminders.');
       return;
     }
@@ -274,6 +302,8 @@ export default function TodoBoard() {
 
     try {
       const method = editingTodo ? 'PUT' : 'POST';
+      const remindAtIso = toReminderIso(form.remindDate, form.remindTime);
+
       const payload = {
         id: editingTodo?.id,
         title: form.title.trim(),
@@ -282,7 +312,7 @@ export default function TodoBoard() {
         status: (editingTodo?.status || 'todo') as TodoStatus,
         recurrence: form.recurrence,
         repeatEveryDays: form.recurrence === 'every-n-days' ? form.repeatEveryDays : 1,
-        remindAt: form.remindAt ? new Date(form.remindAt).toISOString() : undefined,
+        remindAt: remindAtIso,
         emailReminder: form.emailReminder,
         pushReminder: form.pushReminder,
       };
@@ -451,18 +481,31 @@ export default function TodoBoard() {
               </div>
 
               <div>
-                <Label htmlFor="todo-remind-at">Start date and time</Label>
-                <Input
-                  id="todo-remind-at"
-                  type="datetime-local"
-                  value={form.remindAt}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      remindAt: event.target.value,
-                    }))
-                  }
-                />
+                <Label>Start schedule</Label>
+                <div className="todo-reminder-grid">
+                  <Input
+                    id="todo-remind-date"
+                    type="date"
+                    value={form.remindDate}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        remindDate: event.target.value,
+                      }))
+                    }
+                  />
+                  <Input
+                    id="todo-remind-time"
+                    type="time"
+                    value={form.remindTime}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        remindTime: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
               </div>
             </div>
 

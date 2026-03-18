@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, lte, ne } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, lte, ne, or } from 'drizzle-orm';
 import { db } from '@/db';
 import { pushSubscriptions, todos, users } from '@/db/schema';
 import { sendEmail } from '@/lib/gmail';
@@ -9,6 +9,7 @@ interface ReminderDispatchResult {
   notified: number;
   emailSent: number;
   pushSent: number;
+  failedToDispatch: number;
 }
 
 type RecurrenceType = 'once' | 'daily' | 'weekly' | 'every-n-days';
@@ -73,10 +74,17 @@ export async function dispatchDueTodoReminders(): Promise<ReminderDispatchResult
     })
     .from(todos)
     .innerJoin(users, eq(users.id, todos.userId))
-    .where(and(isNotNull(todos.remindAt), lte(todos.remindAt, now), ne(todos.status, 'done')));
+    .where(
+      and(
+        isNotNull(todos.remindAt),
+        lte(todos.remindAt, now),
+        ne(todos.status, 'done'),
+        or(eq(todos.emailReminder, true), eq(todos.pushReminder, true)),
+      ),
+    );
 
   if (dueTodos.length === 0) {
-    return { scanned: 0, notified: 0, emailSent: 0, pushSent: 0 };
+    return { scanned: 0, notified: 0, emailSent: 0, pushSent: 0, failedToDispatch: 0 };
   }
 
   const userIds = [...new Set(dueTodos.map((todo) => todo.userId))];
@@ -213,7 +221,8 @@ export async function dispatchDueTodoReminders(): Promise<ReminderDispatchResult
       const emailOk = !todo.emailReminder || emailBatchOk;
       const pushOk = !todo.pushReminder || pushBatchOk;
 
-      if (emailOk || pushOk) {
+      // Advance reminder only if every enabled channel succeeded.
+      if (emailOk && pushOk) {
         const nextReminderAt = getNextReminderDate(
           todo.recurrence as RecurrenceType,
           todo.remindAt,
@@ -246,5 +255,6 @@ export async function dispatchDueTodoReminders(): Promise<ReminderDispatchResult
     notified,
     emailSent,
     pushSent,
+    failedToDispatch: dueTodos.length - notified,
   };
 }

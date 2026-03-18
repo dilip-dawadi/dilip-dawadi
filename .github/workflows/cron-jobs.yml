@@ -2,7 +2,7 @@ name: Todo Reminder Cron
 
 on:
   schedule:
-    - cron: '0 * * * *' # every 1 hour (UTC)
+    - cron: '0 * * * *' # every hour (UTC)
   workflow_dispatch:
 
 jobs:
@@ -13,21 +13,28 @@ jobs:
     steps:
       - name: Call todo reminders endpoint
         env:
-          REMINDER_URL: https://www.dilipdawadi.com.np/api/todos/reminders
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           set -euo pipefail
 
+          if [ -z "${APP_BASE_URL:-}" ]; then
+            echo "APP_BASE_URL secret is required (example: https://www.dilipdawadi.com.np)"
+            exit 1
+          fi
+
+          REMINDER_URL="${APP_BASE_URL%/}/api/todos/reminders"
+
           if [ -n "${CRON_SECRET:-}" ]; then
             echo "Calling with cron authorization..."
             http_code=$(curl -sS -o response.txt -w "%{http_code}" \
-              -X GET "$REMINDER_URL" \
+              -X POST "$REMINDER_URL" \
               -H "Authorization: Bearer $CRON_SECRET" \
               -H "Accept: application/json")
           else
             echo "CRON_SECRET not set, calling without authorization header..."
             http_code=$(curl -sS -o response.txt -w "%{http_code}" \
-              -X GET "$REMINDER_URL" \
+              -X POST "$REMINDER_URL" \
               -H "Accept: application/json")
           fi
 

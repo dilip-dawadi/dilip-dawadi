@@ -1,0 +1,12 @@
+name: Cron Jobs
+
+on:
+  schedule:
+    - cron: "*/10 * * * *" # every 10 min
+
+jobs:
+  call-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call API
+        run: curl -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" https://your-app.vercel.app/api/cron

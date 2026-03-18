@@ -1,12 +1,40 @@
-name: Cron Jobs
+name: Todo Reminder Cron
 
 on:
   schedule:
-    - cron: "*/10 * * * *" # every 10 min
+    - cron: '0 * * * *' # every 1 hour (UTC)
+  workflow_dispatch:
 
 jobs:
-  call-api:
+  call-reminder-api:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+
     steps:
-      - name: Call API
-        run: curl -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" https://your-app.vercel.app/api/cron
+      - name: Call todo reminders endpoint
+        env:
+          REMINDER_URL: https://www.dilipdawadi.com.np/api/todos/reminders
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${CRON_SECRET:-}" ]; then
+            echo "Calling with cron authorization..."
+            http_code=$(curl -sS -o response.txt -w "%{http_code}" \
+              -X GET "$REMINDER_URL" \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              -H "Accept: application/json")
+          else
+            echo "CRON_SECRET not set, calling without authorization header..."
+            http_code=$(curl -sS -o response.txt -w "%{http_code}" \
+              -X GET "$REMINDER_URL" \
+              -H "Accept: application/json")
+          fi
+
+          echo "HTTP status: $http_code"
+          cat response.txt || true
+
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "Reminder API call failed."
+            exit 1
+          fi

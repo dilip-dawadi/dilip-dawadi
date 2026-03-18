@@ -1,6 +1,8 @@
 import * as React from 'react';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
-import { Check, ChevronsUpDown, Search } from 'lucide-react';
+import type { IconProp } from '@fortawesome/fontawesome-svg-core';
+import { faCheck, faMagnifyingGlass, faSort } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { cn } from '@/lib/utils';
 
 export interface SearchableSelectOption {
@@ -76,7 +78,7 @@ export function SearchableSelect({
           <span className={selectedOption ? 'text-foreground' : 'text-muted-foreground'}>
             {selectedOption ? selectedOption.label : placeholder}
           </span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" aria-hidden="true" />
+          <FontAwesomeIcon icon={faSort as IconProp} className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </button>
       </PopoverPrimitive.Trigger>
 
@@ -101,7 +103,10 @@ export function SearchableSelect({
               !searchable && 'hidden',
             )}
           >
-            <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <FontAwesomeIcon
+              icon={faMagnifyingGlass as IconProp}
+              className="h-4 w-4 shrink-0 text-muted-foreground"
+            />
             <input
               autoFocus
               type="text"
@@ -134,7 +139,10 @@ export function SearchableSelect({
                   >
                     {option.label}
                     {isSelected && (
-                      <Check className="ml-2 h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
+                      <FontAwesomeIcon
+                        icon={faCheck as IconProp}
+                        className="ml-2 h-4 w-4 shrink-0 text-accent"
+                      />
                     )}
                   </button>
                 );

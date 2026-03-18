@@ -12,7 +12,7 @@ interface ReminderDispatchResult {
   failedToDispatch: number;
 }
 
-type RecurrenceType = 'once' | 'daily' | 'weekly' | 'every-n-days';
+type RecurrenceType = 'once' | 'daily' | 'weekly' | 'monthly' | 'every-n-days';
 
 function priorityLabel(priority: string): string {
   return priority.charAt(0).toUpperCase() + priority.slice(1);
@@ -21,8 +21,22 @@ function priorityLabel(priority: string): string {
 function recurrenceLabel(recurrence: RecurrenceType, repeatEveryDays: number): string {
   if (recurrence === 'daily') return 'Daily';
   if (recurrence === 'weekly') return 'Weekly';
+  if (recurrence === 'monthly') return 'Monthly';
   if (recurrence === 'every-n-days') return `Every ${repeatEveryDays} days`;
   return 'One-time';
+}
+
+function addOneMonthPreservingDay(date: Date): Date {
+  const next = new Date(date);
+  const targetDay = next.getDate();
+
+  next.setDate(1);
+  next.setMonth(next.getMonth() + 1);
+
+  const daysInTargetMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+  next.setDate(Math.min(targetDay, daysInTargetMonth));
+
+  return next;
 }
 
 function escapeHtml(value: string): string {
@@ -45,10 +59,24 @@ function getNextReminderDate(
   }
 
   const next = new Date(remindAt);
-  const stepDays = recurrence === 'daily' ? 1 : recurrence === 'weekly' ? 7 : repeatEveryDays;
-
   while (next <= now) {
-    next.setDate(next.getDate() + stepDays);
+    if (recurrence === 'daily') {
+      next.setDate(next.getDate() + 1);
+      continue;
+    }
+
+    if (recurrence === 'weekly') {
+      next.setDate(next.getDate() + 7);
+      continue;
+    }
+
+    if (recurrence === 'monthly') {
+      const nextMonthly = addOneMonthPreservingDay(next);
+      next.setTime(nextMonthly.getTime());
+      continue;
+    }
+
+    next.setDate(next.getDate() + repeatEveryDays);
   }
 
   return next;

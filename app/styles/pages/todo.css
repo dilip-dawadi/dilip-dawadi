@@ -93,6 +93,44 @@
   font-size: 0.92rem;
 }
 
+.todo-page .searchable-select-trigger {
+  height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-size: 0.92rem;
+}
+
+.todo-page .searchable-select-trigger:focus-visible {
+  outline: 2px solid var(--color-accent-light);
+  outline-offset: 1px;
+}
+
+.searchable-select-content {
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  background: var(--color-bg);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+}
+
+.searchable-select-search {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.searchable-select-option {
+  border-radius: 2px;
+  color: var(--color-fg);
+}
+
+.searchable-select-option--default:hover {
+  background: var(--color-bg-alt);
+}
+
+.searchable-select-option--selected {
+  background: var(--color-accent-light);
+}
+
 .todo-description-field {
   margin-top: 0.2rem;
 }
@@ -236,7 +274,7 @@
   flex-wrap: wrap;
 }
 
-.todo-card-actions select {
+.todo-card-actions .searchable-select-trigger {
   min-width: 140px;
 }
 

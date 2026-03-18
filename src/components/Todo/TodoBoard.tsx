@@ -5,11 +5,12 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Textarea } from '@/components/ui/textarea';
 
 type Priority = 'low' | 'medium' | 'high';
 type TodoStatus = 'todo' | 'in-progress' | 'done';
-type Recurrence = 'once' | 'daily' | 'weekly' | 'every-n-days';
+type Recurrence = 'once' | 'daily' | 'weekly' | 'monthly' | 'every-n-days';
 
 interface Todo {
   id: string;
@@ -30,7 +31,7 @@ interface TodoFormState {
   description: string;
   priority: Priority;
   recurrence: Recurrence;
-  repeatEveryDays: number;
+  repeatEveryDays: number | '';
   remindDate: string;
   remindTime: string;
   emailReminder: boolean;
@@ -48,6 +49,26 @@ const priorityLabels: Record<Priority, string> = {
   medium: 'Important',
   low: 'Normal',
 };
+
+const priorityOptions = [
+  { id: 'high', label: 'Urgent' },
+  { id: 'medium', label: 'Important' },
+  { id: 'low', label: 'Normal' },
+];
+
+const recurrenceOptions = [
+  { id: 'once', label: 'One-time' },
+  { id: 'daily', label: 'Daily' },
+  { id: 'weekly', label: 'Weekly' },
+  { id: 'monthly', label: 'Monthly' },
+  { id: 'every-n-days', label: 'Every N days' },
+];
+
+const statusOptions = [
+  { id: 'todo', label: 'To Do' },
+  { id: 'in-progress', label: 'In Progress' },
+  { id: 'done', label: 'Done' },
+];
 
 const defaultFormState: TodoFormState = {
   title: '',
@@ -126,6 +147,10 @@ function scheduleText(todo: Todo): string {
 
   if (todo.recurrence === 'weekly') {
     return `Weekly, next: ${base}`;
+  }
+
+  if (todo.recurrence === 'monthly') {
+    return `Monthly, next: ${base}`;
   }
 
   if (todo.recurrence === 'every-n-days') {
@@ -298,6 +323,16 @@ export default function TodoBoard() {
       return;
     }
 
+    const repeatEveryDays = Number(form.repeatEveryDays);
+
+    if (
+      form.recurrence === 'every-n-days' &&
+      (!Number.isInteger(repeatEveryDays) || repeatEveryDays < 1 || repeatEveryDays > 365)
+    ) {
+      setFeedback('Repeat interval must be between 1 and 365 days.');
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -311,7 +346,7 @@ export default function TodoBoard() {
         priority: form.priority,
         status: (editingTodo?.status || 'todo') as TodoStatus,
         recurrence: form.recurrence,
-        repeatEveryDays: form.recurrence === 'every-n-days' ? form.repeatEveryDays : 1,
+        repeatEveryDays: form.recurrence === 'every-n-days' ? repeatEveryDays : 1,
         remindAt: remindAtIso,
         emailReminder: form.emailReminder,
         pushReminder: form.pushReminder,
@@ -443,7 +478,7 @@ export default function TodoBoard() {
         <CardHeader>
           <CardTitle>{editingTodo ? 'Edit Task Routine' : 'Create Life Task'}</CardTitle>
           <CardDescription>
-            Choose when to remind yourself: one-time, daily, weekly, or every N days.
+            Choose when to remind yourself: one-time, daily, weekly, monthly, or every N days.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -463,21 +498,17 @@ export default function TodoBoard() {
 
               <div>
                 <Label htmlFor="todo-priority">Priority level</Label>
-                <select
+                <SearchableSelect
                   id="todo-priority"
-                  className="todo-native-select"
+                  options={priorityOptions}
                   value={form.priority}
-                  onChange={(event) =>
+                  onChange={(value) =>
                     setForm((prev) => ({
                       ...prev,
-                      priority: event.target.value as Priority,
+                      priority: value as Priority,
                     }))
                   }
-                >
-                  <option value="high">Urgent</option>
-                  <option value="medium">Important</option>
-                  <option value="low">Normal</option>
-                </select>
+                />
               </div>
 
               <div>
@@ -512,22 +543,18 @@ export default function TodoBoard() {
             <div className="todo-form-grid todo-form-grid--schedule">
               <div>
                 <Label htmlFor="todo-recurrence">Repeat</Label>
-                <select
+                <SearchableSelect
                   id="todo-recurrence"
-                  className="todo-native-select"
+                  options={recurrenceOptions}
                   value={form.recurrence}
-                  onChange={(event) =>
+                  onChange={(value) =>
                     setForm((prev) => ({
                       ...prev,
-                      recurrence: event.target.value as Recurrence,
+                      recurrence: value as Recurrence,
                     }))
                   }
-                >
-                  <option value="once">One-time</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="every-n-days">Every N days</option>
-                </select>
+                  searchable
+                />
               </div>
 
               {form.recurrence === 'every-n-days' && (
@@ -542,7 +569,8 @@ export default function TodoBoard() {
                     onChange={(event) =>
                       setForm((prev) => ({
                         ...prev,
-                        repeatEveryDays: Number(event.target.value || 1),
+                        repeatEveryDays:
+                          event.target.value === '' ? '' : Number(event.target.value),
                       }))
                     }
                   />
@@ -642,17 +670,11 @@ export default function TodoBoard() {
                         </div>
 
                         <div className="todo-card-actions">
-                          <select
-                            className="todo-native-select"
+                          <SearchableSelect
+                            options={statusOptions}
                             value={todo.status}
-                            onChange={(event) =>
-                              updateTodoStatus(todo, event.target.value as TodoStatus)
-                            }
-                          >
-                            <option value="todo">To Do</option>
-                            <option value="in-progress">In Progress</option>
-                            <option value="done">Done</option>
-                          </select>
+                            onChange={(value) => updateTodoStatus(todo, value as TodoStatus)}
+                          />
 
                           <button type="button" onClick={() => startEdit(todo)}>
                             {isEditing ? 'Editing' : 'Edit'}

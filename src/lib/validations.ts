@@ -40,7 +40,7 @@ export const todoFormSchema = z
     description: z.string().max(2000, 'Description is too long').optional().or(z.literal('')),
     priority: z.enum(['low', 'medium', 'high']).default('medium'),
     status: z.enum(['todo', 'in-progress', 'done']).default('todo'),
-    recurrence: z.enum(['once', 'daily', 'weekly', 'every-n-days']).default('once'),
+    recurrence: z.enum(['once', 'daily', 'weekly', 'monthly', 'every-n-days']).default('once'),
     repeatEveryDays: z
       .number()
       .int('Repeat interval must be an integer')

@@ -153,7 +153,10 @@ function minutesToHoursLabel(minutes: number): string {
   return `${hours}h ${mins}m`;
 }
 
+type WorkIncomeTab = 'today-income' | 'pending-payment';
+
 export default function WorkIncomeCalculator() {
+  const [activeTab, setActiveTab] = useState<WorkIncomeTab>('today-income');
   const [month, setMonth] = useState(monthKey());
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState('');
@@ -504,517 +507,560 @@ export default function WorkIncomeCalculator() {
         </div>
       </header>
 
-      <div className="finance-grid finance-grid--single">
-        <Card>
+      <div className="finance-tabs" role="tablist" aria-label="Work income sections">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'today-income'}
+          className={`finance-tab-btn ${activeTab === 'today-income' ? 'finance-tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('today-income')}
+        >
+          Today Income
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'pending-payment'}
+          className={`finance-tab-btn ${activeTab === 'pending-payment' ? 'finance-tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('pending-payment')}
+        >
+          Pending Payment
+        </button>
+      </div>
+
+      {activeTab === 'today-income' ? (
+        <>
+          <div className="finance-grid finance-grid--single">
+            <Card>
+              <CardHeader>
+                <CardTitle>Add Work Log</CardTitle>
+                <CardDescription>
+                  Calculate today income from hours and hourly rate.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form className="finance-form" onSubmit={saveWorkLog}>
+                  <div className="finance-form-row">
+                    <div>
+                      <Label htmlFor="work-hours">Hours</Label>
+                      <Input
+                        id="work-hours"
+                        type="number"
+                        min={0}
+                        step="0.5"
+                        value={workLogForm.hours}
+                        onChange={(event) =>
+                          setWorkLogForm((prev) => ({
+                            ...prev,
+                            hours: event.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="work-minutes">Minutes</Label>
+                      <Input
+                        id="work-minutes"
+                        type="number"
+                        min={0}
+                        max={59}
+                        step={1}
+                        value={workLogForm.minutes}
+                        onChange={(event) =>
+                          setWorkLogForm((prev) => ({
+                            ...prev,
+                            minutes: event.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="finance-form-row">
+                    <div>
+                      <Label htmlFor="work-rate">Rate / Hour</Label>
+                      <Input
+                        id="work-rate"
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={workLogForm.hourlyRate}
+                        onChange={(event) =>
+                          setWorkLogForm((prev) => ({
+                            ...prev,
+                            hourlyRate: event.target.value,
+                          }))
+                        }
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="work-date">Work Date</Label>
+                      <Input
+                        id="work-date"
+                        type="date"
+                        value={workLogForm.workDate}
+                        onChange={(event) =>
+                          setWorkLogForm((prev) => ({
+                            ...prev,
+                            workDate: event.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="work-linked-todo">Linked Planner Task</Label>
+                    <SearchableSelect
+                      id="work-linked-todo"
+                      options={todoOptions}
+                      value={workLogForm.todoId}
+                      onChange={(value) => setWorkLogForm((prev) => ({ ...prev, todoId: value }))}
+                      searchable
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="work-note">Work Note</Label>
+                    <Textarea
+                      id="work-note"
+                      rows={2}
+                      value={workLogForm.note}
+                      onChange={(event) =>
+                        setWorkLogForm((prev) => ({
+                          ...prev,
+                          note: event.target.value,
+                        }))
+                      }
+                      placeholder="What did you work on?"
+                    />
+                  </div>
+
+                  <div className="finance-work-summary">
+                    <span>
+                      Today: <strong>{toCurrency(todayWorkSummary?.totalIncomeCents || 0)}</strong>
+                    </span>
+                    <span>
+                      Logged time:{' '}
+                      <strong>{minutesToHoursLabel(todayWorkSummary?.totalMinutes || 0)}</strong>
+                    </span>
+                  </div>
+
+                  <div className="finance-actions">
+                    <button type="submit" disabled={savingWorkLog}>
+                      {savingWorkLog ? 'Saving...' : 'Add Work Log'}
+                    </button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="finance-transactions-card">
+            <CardHeader>
+              <CardTitle>Work Logs ({month})</CardTitle>
+              <CardDescription>
+                Work sessions connected to planner tasks and synced as income transactions.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <p className="finance-muted">Loading work logs...</p>
+              ) : workLogs.length === 0 ? (
+                <p className="finance-muted">No work logs yet this month.</p>
+              ) : (
+                <div className="finance-transaction-list">
+                  {workLogs.map((log) => {
+                    const linkedTodo = todos.find((todo) => todo.id === log.todoId);
+                    const incomeCents = Math.round((log.minutesWorked / 60) * log.hourlyRateCents);
+
+                    return (
+                      <article
+                        key={log.id}
+                        className="finance-transaction finance-transaction--income"
+                      >
+                        <div>
+                          <h3>{linkedTodo?.title || 'Unlinked work block'}</h3>
+                          <p>{log.note || 'No notes'}</p>
+                          <small>
+                            {new Date(log.workDate).toLocaleDateString()} •{' '}
+                            {minutesToHoursLabel(log.minutesWorked)}
+                          </small>
+                        </div>
+
+                        <div className="finance-transaction-side">
+                          <strong>+ {toCurrency(incomeCents)}</strong>
+                          <button
+                            type="button"
+                            className="finance-link-btn finance-link-btn--danger"
+                            onClick={() => deleteWorkLog(log.id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      ) : null}
+
+      {activeTab === 'pending-payment' ? (
+        <Card className="finance-transactions-card">
           <CardHeader>
-            <CardTitle>Add Work Log</CardTitle>
-            <CardDescription>Calculate today income from hours and hourly rate.</CardDescription>
+            <CardTitle>Pending Payments (Receivables)</CardTitle>
+            <CardDescription>
+              Track unpaid money by person, send reminder emails, and sync to finance once paid.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="finance-form" onSubmit={saveWorkLog}>
+            <form className="finance-form" onSubmit={saveReceivable}>
               <div className="finance-form-row">
                 <div>
-                  <Label htmlFor="work-hours">Hours</Label>
+                  <Label htmlFor="receivable-payer">Person / Company</Label>
                   <Input
-                    id="work-hours"
-                    type="number"
-                    min={0}
-                    step="0.5"
-                    value={workLogForm.hours}
+                    id="receivable-payer"
+                    value={receivableForm.payerName}
                     onChange={(event) =>
-                      setWorkLogForm((prev) => ({
-                        ...prev,
-                        hours: event.target.value,
-                      }))
+                      setReceivableForm((prev) => ({ ...prev, payerName: event.target.value }))
                     }
+                    placeholder="Client name"
+                    required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="work-minutes">Minutes</Label>
+                  <Label htmlFor="receivable-email">Payer Email</Label>
                   <Input
-                    id="work-minutes"
-                    type="number"
-                    min={0}
-                    max={59}
-                    step={1}
-                    value={workLogForm.minutes}
+                    id="receivable-email"
+                    type="email"
+                    value={receivableForm.payerEmail}
                     onChange={(event) =>
-                      setWorkLogForm((prev) => ({
-                        ...prev,
-                        minutes: event.target.value,
-                      }))
+                      setReceivableForm((prev) => ({ ...prev, payerEmail: event.target.value }))
                     }
+                    placeholder="client@email.com"
                   />
                 </div>
               </div>
 
               <div className="finance-form-row">
                 <div>
-                  <Label htmlFor="work-rate">Rate / Hour</Label>
+                  <Label htmlFor="receivable-title">Payment For</Label>
                   <Input
-                    id="work-rate"
+                    id="receivable-title"
+                    value={receivableForm.title}
+                    onChange={(event) =>
+                      setReceivableForm((prev) => ({ ...prev, title: event.target.value }))
+                    }
+                    placeholder="March dev support"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="receivable-amount">Total Amount</Label>
+                  <Input
+                    id="receivable-amount"
                     type="number"
                     min={0}
                     step="0.01"
-                    value={workLogForm.hourlyRate}
+                    value={receivableForm.amount}
+                    disabled={receivableForm.useHoursRate}
                     onChange={(event) =>
-                      setWorkLogForm((prev) => ({
-                        ...prev,
-                        hourlyRate: event.target.value,
-                      }))
+                      setReceivableForm((prev) => ({ ...prev, amount: event.target.value }))
                     }
                     placeholder="0.00"
                   />
                 </div>
+              </div>
+
+              <label className="finance-toggle">
+                <input
+                  type="checkbox"
+                  checked={receivableForm.useHoursRate}
+                  onChange={(event) =>
+                    setReceivableForm((prev) => ({ ...prev, useHoursRate: event.target.checked }))
+                  }
+                />
+                Calculate total from work hours and hourly rate
+              </label>
+
+              {receivableForm.useHoursRate && (
+                <div className="finance-form-row">
+                  <div>
+                    <Label htmlFor="receivable-hours">Hours</Label>
+                    <Input
+                      id="receivable-hours"
+                      type="number"
+                      min={0}
+                      step="0.5"
+                      value={receivableForm.hours}
+                      onChange={(event) =>
+                        setReceivableForm((prev) => ({ ...prev, hours: event.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="receivable-minutes">Minutes</Label>
+                    <Input
+                      id="receivable-minutes"
+                      type="number"
+                      min={0}
+                      max={59}
+                      step={1}
+                      value={receivableForm.minutes}
+                      onChange={(event) =>
+                        setReceivableForm((prev) => ({ ...prev, minutes: event.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+              )}
+
+              {receivableForm.useHoursRate && (
                 <div>
-                  <Label htmlFor="work-date">Work Date</Label>
+                  <Label htmlFor="receivable-rate">Rate / Hour</Label>
                   <Input
-                    id="work-date"
-                    type="date"
-                    value={workLogForm.workDate}
+                    id="receivable-rate"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={receivableForm.hourlyRate}
                     onChange={(event) =>
-                      setWorkLogForm((prev) => ({
-                        ...prev,
-                        workDate: event.target.value,
-                      }))
+                      setReceivableForm((prev) => ({ ...prev, hourlyRate: event.target.value }))
+                    }
+                    placeholder="0.00"
+                  />
+                </div>
+              )}
+
+              <div className="finance-form-row">
+                <div>
+                  <Label htmlFor="receivable-due-date">Due Date</Label>
+                  <Input
+                    id="receivable-due-date"
+                    type="date"
+                    value={receivableForm.dueDate}
+                    onChange={(event) =>
+                      setReceivableForm((prev) => ({ ...prev, dueDate: event.target.value }))
                     }
                   />
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="work-linked-todo">Linked Planner Task</Label>
-                <SearchableSelect
-                  id="work-linked-todo"
-                  options={todoOptions}
-                  value={workLogForm.todoId}
-                  onChange={(value) => setWorkLogForm((prev) => ({ ...prev, todoId: value }))}
-                  searchable
-                />
+              <div className="finance-form-row">
+                <div>
+                  <Label htmlFor="receivable-todo">Linked Planner Task</Label>
+                  <SearchableSelect
+                    id="receivable-todo"
+                    options={todoOptions}
+                    value={receivableForm.todoId}
+                    onChange={(value) => setReceivableForm((prev) => ({ ...prev, todoId: value }))}
+                    searchable
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="receivable-work-log">Linked Work Log</Label>
+                  <SearchableSelect
+                    id="receivable-work-log"
+                    options={workLogOptions}
+                    value={receivableForm.workLogId}
+                    onChange={(value) =>
+                      setReceivableForm((prev) => ({ ...prev, workLogId: value }))
+                    }
+                    searchable
+                  />
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="work-note">Work Note</Label>
-                <Textarea
-                  id="work-note"
-                  rows={2}
-                  value={workLogForm.note}
+              <label className="finance-toggle">
+                <input
+                  type="checkbox"
+                  checked={receivableForm.includeWorkDetails}
                   onChange={(event) =>
-                    setWorkLogForm((prev) => ({
+                    setReceivableForm((prev) => ({
                       ...prev,
-                      note: event.target.value,
+                      includeWorkDetails: event.target.checked,
                     }))
                   }
-                  placeholder="What did you work on?"
                 />
-              </div>
+                Include work hours and rate details in email reminder
+              </label>
 
-              <div className="finance-work-summary">
-                <span>
-                  Today: <strong>{toCurrency(todayWorkSummary?.totalIncomeCents || 0)}</strong>
-                </span>
-                <span>
-                  Logged time:{' '}
-                  <strong>{minutesToHoursLabel(todayWorkSummary?.totalMinutes || 0)}</strong>
-                </span>
+              <div>
+                <Label htmlFor="receivable-note">Notes</Label>
+                <Textarea
+                  id="receivable-note"
+                  rows={2}
+                  value={receivableForm.note}
+                  onChange={(event) =>
+                    setReceivableForm((prev) => ({ ...prev, note: event.target.value }))
+                  }
+                  placeholder="Remaining payment for sprint support"
+                />
               </div>
 
               <div className="finance-actions">
-                <button type="submit" disabled={savingWorkLog}>
-                  {savingWorkLog ? 'Saving...' : 'Add Work Log'}
+                <button type="submit" disabled={savingReceivable}>
+                  {savingReceivable ? 'Saving...' : 'Add Pending Payment'}
                 </button>
               </div>
             </form>
           </CardContent>
         </Card>
-      </div>
+      ) : null}
 
-      <Card className="finance-transactions-card">
-        <CardHeader>
-          <CardTitle>Work Logs ({month})</CardTitle>
-          <CardDescription>
-            Work sessions connected to planner tasks and synced as income transactions.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p className="finance-muted">Loading work logs...</p>
-          ) : workLogs.length === 0 ? (
-            <p className="finance-muted">No work logs yet this month.</p>
-          ) : (
-            <div className="finance-transaction-list">
-              {workLogs.map((log) => {
-                const linkedTodo = todos.find((todo) => todo.id === log.todoId);
-                const incomeCents = Math.round((log.minutesWorked / 60) * log.hourlyRateCents);
+      {activeTab === 'pending-payment' ? (
+        <Card className="finance-transactions-card">
+          <CardHeader>
+            <CardTitle>Pending Receivables</CardTitle>
+            <CardDescription>
+              Grouped by person. Send reminders or mark multiple pending items as paid.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="finance-form" style={{ marginBottom: '0.8rem' }}>
+              <div>
+                <Label htmlFor="receivable-reminder-message">Reminder Message (optional)</Label>
+                <Textarea
+                  id="receivable-reminder-message"
+                  rows={2}
+                  value={reminderMessage}
+                  onChange={(event) => setReminderMessage(event.target.value)}
+                  placeholder="Please clear the pending amount today."
+                />
+              </div>
 
-                return (
-                  <article key={log.id} className="finance-transaction finance-transaction--income">
+              <div className="finance-actions">
+                <button
+                  type="button"
+                  disabled={markingPaid || selectedPendingIds.length === 0}
+                  onClick={() => void markReceivablesPaid(selectedPendingIds)}
+                >
+                  {markingPaid ? 'Updating...' : 'Mark Selected Paid'}
+                </button>
+                <button
+                  type="button"
+                  className="finance-secondary-btn"
+                  disabled={sendingReminder || selectedPendingIds.length === 0}
+                  onClick={() => void sendReminders(selectedPendingIds)}
+                >
+                  {sendingReminder ? 'Sending...' : 'Send Email Reminder'}
+                </button>
+              </div>
+            </div>
+
+            {pendingReceivables.length === 0 ? (
+              <p className="finance-muted">No pending receivables.</p>
+            ) : (
+              <div className="finance-transaction-list">
+                {groupedPendingReceivables.map(([group, list]) => (
+                  <div key={group} className="finance-receivable-group">
                     <div>
-                      <h3>{linkedTodo?.title || 'Unlinked work block'}</h3>
-                      <p>{log.note || 'No notes'}</p>
+                      <strong>{group}</strong>
+                      <span>{list.length} pending</span>
+                    </div>
+
+                    <div className="finance-transaction-list">
+                      {list.map((item) => (
+                        <article
+                          key={item.id}
+                          className="finance-transaction finance-transaction--expense"
+                        >
+                          <div>
+                            <h3>{item.title}</h3>
+                            <p>{item.note || 'No notes'}</p>
+                            <small>
+                              Due:{' '}
+                              {item.dueAt
+                                ? new Date(item.dueAt).toLocaleDateString()
+                                : 'No due date'}
+                              {item.payerEmail ? ` • ${item.payerEmail}` : ''}
+                            </small>
+                          </div>
+
+                          <div className="finance-transaction-side">
+                            <label className="finance-toggle">
+                              <input
+                                type="checkbox"
+                                checked={selectedPendingIds.includes(item.id)}
+                                onChange={() => togglePendingSelection(item.id)}
+                              />
+                              Select
+                            </label>
+                            <strong>+ {toCurrency(item.amountCents)}</strong>
+                            <div className="finance-inline-actions">
+                              <button
+                                type="button"
+                                className="finance-link-btn"
+                                onClick={() => void markReceivablesPaid([item.id])}
+                              >
+                                Mark Paid
+                              </button>
+                              <button
+                                type="button"
+                                className="finance-link-btn"
+                                onClick={() => void sendReminders([item.id])}
+                              >
+                                Email
+                              </button>
+                              <button
+                                type="button"
+                                className="finance-link-btn finance-link-btn--danger"
+                                onClick={() => void deleteReceivable(item.id)}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {activeTab === 'pending-payment' ? (
+        <Card className="finance-transactions-card">
+          <CardHeader>
+            <CardTitle>Paid Receivables (Recent)</CardTitle>
+            <CardDescription>
+              Paid items synced to finance income when status changed to paid.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {paidReceivables.length === 0 ? (
+              <p className="finance-muted">No paid receivables yet.</p>
+            ) : (
+              <div className="finance-transaction-list">
+                {paidReceivables.map((item) => (
+                  <article
+                    key={item.id}
+                    className="finance-transaction finance-transaction--income"
+                  >
+                    <div>
+                      <h3>{item.title}</h3>
+                      <p>{item.payerName}</p>
                       <small>
-                        {new Date(log.workDate).toLocaleDateString()} •{' '}
-                        {minutesToHoursLabel(log.minutesWorked)}
+                        Paid: {item.paidAt ? new Date(item.paidAt).toLocaleString() : 'Unknown'}
                       </small>
                     </div>
-
                     <div className="finance-transaction-side">
-                      <strong>+ {toCurrency(incomeCents)}</strong>
-                      <button
-                        type="button"
-                        className="finance-link-btn finance-link-btn--danger"
-                        onClick={() => deleteWorkLog(log.id)}
-                      >
-                        Delete
-                      </button>
+                      <strong>+ {toCurrency(item.amountCents)}</strong>
                     </div>
                   </article>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="finance-transactions-card">
-        <CardHeader>
-          <CardTitle>Pending Payments (Receivables)</CardTitle>
-          <CardDescription>
-            Track unpaid money by person, send reminder emails, and sync to finance once paid.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="finance-form" onSubmit={saveReceivable}>
-            <div className="finance-form-row">
-              <div>
-                <Label htmlFor="receivable-payer">Person / Company</Label>
-                <Input
-                  id="receivable-payer"
-                  value={receivableForm.payerName}
-                  onChange={(event) =>
-                    setReceivableForm((prev) => ({ ...prev, payerName: event.target.value }))
-                  }
-                  placeholder="Client name"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="receivable-email">Payer Email</Label>
-                <Input
-                  id="receivable-email"
-                  type="email"
-                  value={receivableForm.payerEmail}
-                  onChange={(event) =>
-                    setReceivableForm((prev) => ({ ...prev, payerEmail: event.target.value }))
-                  }
-                  placeholder="client@email.com"
-                />
-              </div>
-            </div>
-
-            <div className="finance-form-row">
-              <div>
-                <Label htmlFor="receivable-title">Payment For</Label>
-                <Input
-                  id="receivable-title"
-                  value={receivableForm.title}
-                  onChange={(event) =>
-                    setReceivableForm((prev) => ({ ...prev, title: event.target.value }))
-                  }
-                  placeholder="March dev support"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="receivable-amount">Total Amount</Label>
-                <Input
-                  id="receivable-amount"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={receivableForm.amount}
-                  disabled={receivableForm.useHoursRate}
-                  onChange={(event) =>
-                    setReceivableForm((prev) => ({ ...prev, amount: event.target.value }))
-                  }
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-
-            <label className="finance-toggle">
-              <input
-                type="checkbox"
-                checked={receivableForm.useHoursRate}
-                onChange={(event) =>
-                  setReceivableForm((prev) => ({ ...prev, useHoursRate: event.target.checked }))
-                }
-              />
-              Calculate total from work hours and hourly rate
-            </label>
-
-            {receivableForm.useHoursRate && (
-              <div className="finance-form-row">
-                <div>
-                  <Label htmlFor="receivable-hours">Hours</Label>
-                  <Input
-                    id="receivable-hours"
-                    type="number"
-                    min={0}
-                    step="0.5"
-                    value={receivableForm.hours}
-                    onChange={(event) =>
-                      setReceivableForm((prev) => ({ ...prev, hours: event.target.value }))
-                    }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="receivable-minutes">Minutes</Label>
-                  <Input
-                    id="receivable-minutes"
-                    type="number"
-                    min={0}
-                    max={59}
-                    step={1}
-                    value={receivableForm.minutes}
-                    onChange={(event) =>
-                      setReceivableForm((prev) => ({ ...prev, minutes: event.target.value }))
-                    }
-                  />
-                </div>
+                ))}
               </div>
             )}
-
-            {receivableForm.useHoursRate && (
-              <div>
-                <Label htmlFor="receivable-rate">Rate / Hour</Label>
-                <Input
-                  id="receivable-rate"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={receivableForm.hourlyRate}
-                  onChange={(event) =>
-                    setReceivableForm((prev) => ({ ...prev, hourlyRate: event.target.value }))
-                  }
-                  placeholder="0.00"
-                />
-              </div>
-            )}
-
-            <div className="finance-form-row">
-              <div>
-                <Label htmlFor="receivable-due-date">Due Date</Label>
-                <Input
-                  id="receivable-due-date"
-                  type="date"
-                  value={receivableForm.dueDate}
-                  onChange={(event) =>
-                    setReceivableForm((prev) => ({ ...prev, dueDate: event.target.value }))
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="finance-form-row">
-              <div>
-                <Label htmlFor="receivable-todo">Linked Planner Task</Label>
-                <SearchableSelect
-                  id="receivable-todo"
-                  options={todoOptions}
-                  value={receivableForm.todoId}
-                  onChange={(value) => setReceivableForm((prev) => ({ ...prev, todoId: value }))}
-                  searchable
-                />
-              </div>
-              <div>
-                <Label htmlFor="receivable-work-log">Linked Work Log</Label>
-                <SearchableSelect
-                  id="receivable-work-log"
-                  options={workLogOptions}
-                  value={receivableForm.workLogId}
-                  onChange={(value) => setReceivableForm((prev) => ({ ...prev, workLogId: value }))}
-                  searchable
-                />
-              </div>
-            </div>
-
-            <label className="finance-toggle">
-              <input
-                type="checkbox"
-                checked={receivableForm.includeWorkDetails}
-                onChange={(event) =>
-                  setReceivableForm((prev) => ({
-                    ...prev,
-                    includeWorkDetails: event.target.checked,
-                  }))
-                }
-              />
-              Include work hours and rate details in email reminder
-            </label>
-
-            <div>
-              <Label htmlFor="receivable-note">Notes</Label>
-              <Textarea
-                id="receivable-note"
-                rows={2}
-                value={receivableForm.note}
-                onChange={(event) =>
-                  setReceivableForm((prev) => ({ ...prev, note: event.target.value }))
-                }
-                placeholder="Remaining payment for sprint support"
-              />
-            </div>
-
-            <div className="finance-actions">
-              <button type="submit" disabled={savingReceivable}>
-                {savingReceivable ? 'Saving...' : 'Add Pending Payment'}
-              </button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card className="finance-transactions-card">
-        <CardHeader>
-          <CardTitle>Pending Receivables</CardTitle>
-          <CardDescription>
-            Grouped by person. Send reminders or mark multiple pending items as paid.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="finance-form" style={{ marginBottom: '0.8rem' }}>
-            <div>
-              <Label htmlFor="receivable-reminder-message">Reminder Message (optional)</Label>
-              <Textarea
-                id="receivable-reminder-message"
-                rows={2}
-                value={reminderMessage}
-                onChange={(event) => setReminderMessage(event.target.value)}
-                placeholder="Please clear the pending amount today."
-              />
-            </div>
-
-            <div className="finance-actions">
-              <button
-                type="button"
-                disabled={markingPaid || selectedPendingIds.length === 0}
-                onClick={() => void markReceivablesPaid(selectedPendingIds)}
-              >
-                {markingPaid ? 'Updating...' : 'Mark Selected Paid'}
-              </button>
-              <button
-                type="button"
-                className="finance-secondary-btn"
-                disabled={sendingReminder || selectedPendingIds.length === 0}
-                onClick={() => void sendReminders(selectedPendingIds)}
-              >
-                {sendingReminder ? 'Sending...' : 'Send Email Reminder'}
-              </button>
-            </div>
-          </div>
-
-          {pendingReceivables.length === 0 ? (
-            <p className="finance-muted">No pending receivables.</p>
-          ) : (
-            <div className="finance-transaction-list">
-              {groupedPendingReceivables.map(([group, list]) => (
-                <div key={group} className="finance-receivable-group">
-                  <div>
-                    <strong>{group}</strong>
-                    <span>{list.length} pending</span>
-                  </div>
-
-                  <div className="finance-transaction-list">
-                    {list.map((item) => (
-                      <article
-                        key={item.id}
-                        className="finance-transaction finance-transaction--expense"
-                      >
-                        <div>
-                          <h3>{item.title}</h3>
-                          <p>{item.note || 'No notes'}</p>
-                          <small>
-                            Due:{' '}
-                            {item.dueAt ? new Date(item.dueAt).toLocaleDateString() : 'No due date'}
-                            {item.payerEmail ? ` • ${item.payerEmail}` : ''}
-                          </small>
-                        </div>
-
-                        <div className="finance-transaction-side">
-                          <label className="finance-toggle">
-                            <input
-                              type="checkbox"
-                              checked={selectedPendingIds.includes(item.id)}
-                              onChange={() => togglePendingSelection(item.id)}
-                            />
-                            Select
-                          </label>
-                          <strong>+ {toCurrency(item.amountCents)}</strong>
-                          <div className="finance-inline-actions">
-                            <button
-                              type="button"
-                              className="finance-link-btn"
-                              onClick={() => void markReceivablesPaid([item.id])}
-                            >
-                              Mark Paid
-                            </button>
-                            <button
-                              type="button"
-                              className="finance-link-btn"
-                              onClick={() => void sendReminders([item.id])}
-                            >
-                              Email
-                            </button>
-                            <button
-                              type="button"
-                              className="finance-link-btn finance-link-btn--danger"
-                              onClick={() => void deleteReceivable(item.id)}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="finance-transactions-card">
-        <CardHeader>
-          <CardTitle>Paid Receivables (Recent)</CardTitle>
-          <CardDescription>
-            Paid items synced to finance income when status changed to paid.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {paidReceivables.length === 0 ? (
-            <p className="finance-muted">No paid receivables yet.</p>
-          ) : (
-            <div className="finance-transaction-list">
-              {paidReceivables.map((item) => (
-                <article key={item.id} className="finance-transaction finance-transaction--income">
-                  <div>
-                    <h3>{item.title}</h3>
-                    <p>{item.payerName}</p>
-                    <small>
-                      Paid: {item.paidAt ? new Date(item.paidAt).toLocaleString() : 'Unknown'}
-                    </small>
-                  </div>
-                  <div className="finance-transaction-side">
-                    <strong>+ {toCurrency(item.amountCents)}</strong>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {feedback && <p className="finance-feedback">{feedback}</p>}
     </section>

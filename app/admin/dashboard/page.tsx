@@ -5,10 +5,6 @@ import { useRouter } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
-interface DashboardTodo {
-  status: 'todo' | 'in-progress' | 'done';
-}
-
 interface FinanceSummaryResponse {
   totals: {
     incomeCents: number;
@@ -19,7 +15,7 @@ interface FinanceSummaryResponse {
 }
 
 interface DashboardOverview {
-  openTasks: number;
+  pendingMoneyCents: number;
   todayWorkIncomeCents: number;
   todayWorkedMinutes: number;
   incomeCents: number;
@@ -33,8 +29,13 @@ interface TodayWorkResponse {
   totalMinutes: number;
 }
 
+interface DashboardReceivable {
+  amountCents: number;
+  status: 'pending' | 'paid';
+}
+
 const defaultOverview: DashboardOverview = {
-  openTasks: 0,
+  pendingMoneyCents: 0,
   todayWorkIncomeCents: 0,
   todayWorkedMinutes: 0,
   incomeCents: 0,
@@ -90,8 +91,8 @@ export default function AdminDashboard() {
 
     try {
       const month = currentMonthKey();
-      const [todoResult, financeResult, todayWorkResult] = await Promise.allSettled([
-        fetch('/api/todos', { cache: 'no-store' }),
+      const [receivableResult, financeResult, todayWorkResult] = await Promise.allSettled([
+        fetch('/api/finance/receivables', { cache: 'no-store' }),
         fetch(`/api/finance/summary?month=${encodeURIComponent(month)}`, { cache: 'no-store' }),
         fetch('/api/finance/work-logs/today', { cache: 'no-store' }),
       ]);
@@ -99,11 +100,13 @@ export default function AdminDashboard() {
       const nextOverview: DashboardOverview = { ...defaultOverview };
       const failedSources: string[] = [];
 
-      if (todoResult.status === 'fulfilled' && todoResult.value.ok) {
-        const todos = (await todoResult.value.json()) as DashboardTodo[];
-        nextOverview.openTasks = todos.filter((todo) => todo.status !== 'done').length;
+      if (receivableResult.status === 'fulfilled' && receivableResult.value.ok) {
+        const receivables = (await receivableResult.value.json()) as DashboardReceivable[];
+        nextOverview.pendingMoneyCents = receivables
+          .filter((item) => item.status === 'pending')
+          .reduce((sum, item) => sum + item.amountCents, 0);
       } else {
-        failedSources.push('tasks');
+        failedSources.push('pending payments');
       }
 
       if (financeResult.status === 'fulfilled' && financeResult.value.ok) {
@@ -317,16 +320,13 @@ export default function AdminDashboard() {
                   style={{ backgroundColor: 'var(--color-bg)' }}
                 >
                   <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    Open Tasks
+                    Pending Money
                   </p>
-                  <p
-                    className="m-0 text-lg leading-tight font-semibold"
-                    style={{ color: 'var(--color-fg-bold)' }}
-                  >
-                    {overview.openTasks}
+                  <p className="m-0 text-lg leading-tight font-semibold text-red-700">
+                    {toCurrency(overview.pendingMoneyCents)}
                   </p>
                   <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    Active planner items
+                    Total unpaid receivables
                   </p>
                 </div>
 

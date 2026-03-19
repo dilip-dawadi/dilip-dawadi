@@ -39,6 +39,7 @@
 @import './styles/pages/auth-error.css';
 @import './styles/pages/error.css';
 @import './styles/pages/todo.css';
+@import './styles/pages/finance.css';
 
 /* Utilities & Animations */
 @import './styles/utilities.css';

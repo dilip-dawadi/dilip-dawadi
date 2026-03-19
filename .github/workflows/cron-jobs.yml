@@ -1,12 +1,14 @@
-name: Todo Reminder Cron
+name: Scheduled API Jobs
 
 on:
   schedule:
-    - cron: '0 * * * *' # every hour (UTC)
+    - cron: '0 */10 * * *' # todo reminders: every 10 hours (UTC)
+    - cron: '0 9 * * *' # finance alerts: daily at 09:00 UTC
   workflow_dispatch:
 
 jobs:
-  call-reminder-api:
+  call-todo-reminders-api:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 */10 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -42,5 +44,45 @@ jobs:
 
           if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
             echo "Reminder API call failed."
+            exit 1
+          fi
+
+  call-finance-alerts-api:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 9 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Call finance alerts endpoint
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${APP_BASE_URL:-}" ]; then
+            echo "APP_BASE_URL secret is required (example: https://www.dilipdawadi.com.np)"
+            exit 1
+          fi
+
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET secret is required"
+            exit 1
+          fi
+
+          # trailingSlash=true in Next.js, so use canonical endpoint with slash.
+          ALERTS_URL="${APP_BASE_URL%/}/api/finance/alerts/"
+
+          echo "Calling with cron authorization..."
+          http_code=$(curl -sS -L --max-redirs 5 -o response.txt -w "%{http_code}" \
+            -X POST "$ALERTS_URL" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Accept: application/json")
+
+          echo "HTTP status: $http_code"
+          cat response.txt || true
+
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "Finance alerts API call failed."
             exit 1
           fi

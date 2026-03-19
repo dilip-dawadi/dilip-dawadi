@@ -82,6 +82,16 @@ const defaultFormState: TodoFormState = {
   pushReminder: true,
 };
 
+function createDefaultFormState(): TodoFormState {
+  const nowParts = toLocalReminderParts(new Date().toISOString());
+
+  return {
+    ...defaultFormState,
+    remindDate: nowParts.date,
+    remindTime: nowParts.time,
+  };
+}
+
 function toLocalReminderParts(dateString: string | null): { date: string; time: string } {
   if (!dateString) {
     return { date: '', time: '' };
@@ -174,7 +184,7 @@ export default function TodoBoard() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
-  const [form, setForm] = useState<TodoFormState>(defaultFormState);
+  const [form, setForm] = useState<TodoFormState>(() => createDefaultFormState());
   const [feedback, setFeedback] = useState<string>('');
   const [pushEnabled, setPushEnabled] = useState(false);
 
@@ -301,7 +311,7 @@ export default function TodoBoard() {
 
   function cancelEdit() {
     setEditingTodoId(null);
-    setForm(defaultFormState);
+    setForm(createDefaultFormState());
   }
 
   async function saveTodo(event: FormEvent<HTMLFormElement>) {
@@ -370,7 +380,7 @@ export default function TodoBoard() {
         setTodos((current) => [saved, ...current]);
       }
 
-      setForm(defaultFormState);
+      setForm(createDefaultFormState());
       setEditingTodoId(null);
       setFeedback(editingTodo ? 'Task updated.' : 'Task created successfully.');
     } catch (error) {

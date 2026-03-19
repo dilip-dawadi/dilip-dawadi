@@ -1,0 +1,921 @@
+'use client';
+
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
+
+type TransactionType = 'income' | 'expense';
+
+type AlertLevel = 'info' | 'warning' | 'critical';
+
+interface FinanceTransaction {
+  id: string;
+  type: TransactionType;
+  amountCents: number;
+  category: string;
+  note: string | null;
+  happenedAt: string;
+  isRecurring: boolean;
+  recurringInterval: 'weekly' | 'monthly' | null;
+}
+
+interface FinanceSettings {
+  monthlyLimitCents: number;
+  dailyLimitCents: number;
+  monthlySavingsTargetCents: number;
+  notifyThresholdPercent: number;
+  smartAlertsEnabled: boolean;
+  emailAlertsEnabled: boolean;
+  pushAlertsEnabled: boolean;
+}
+
+interface FinanceSummary {
+  month: string;
+  totals: {
+    incomeCents: number;
+    expenseCents: number;
+    netCents: number;
+    savingsRatePercent: number;
+    transactionCount: number;
+  };
+  limits: FinanceSettings;
+  projectedMonthlyExpenseCents: number;
+  byCategory: Array<{ category: string; value: number }>;
+  daily: Array<{ date: string; incomeCents: number; expenseCents: number; netCents: number }>;
+  alerts: Array<{ level: AlertLevel; message: string }>;
+}
+
+interface TransactionFormState {
+  type: TransactionType;
+  amount: string;
+  category: string;
+  note: string;
+  happenedAtDate: string;
+  happenedAtTime: string;
+  isRecurring: boolean;
+  recurringInterval: 'weekly' | 'monthly';
+}
+
+const typeOptions = [
+  { id: 'expense', label: 'Expense' },
+  { id: 'income', label: 'Income' },
+];
+
+const recurringOptions = [
+  { id: 'weekly', label: 'Weekly' },
+  { id: 'monthly', label: 'Monthly' },
+];
+
+const categoryOptions = [
+  { id: 'food', label: 'Food & Dining' },
+  { id: 'groceries', label: 'Groceries' },
+  { id: 'transport', label: 'Transport' },
+  { id: 'housing', label: 'Housing' },
+  { id: 'utilities', label: 'Utilities' },
+  { id: 'health', label: 'Health' },
+  { id: 'shopping', label: 'Shopping' },
+  { id: 'entertainment', label: 'Entertainment' },
+  { id: 'education', label: 'Education' },
+  { id: 'travel', label: 'Travel' },
+  { id: 'salary', label: 'Salary' },
+  { id: 'freelance', label: 'Freelance' },
+  { id: 'investment', label: 'Investment' },
+  { id: 'gift', label: 'Gift / Bonus' },
+  { id: 'other', label: 'Other' },
+];
+
+function createDefaultFormState(): TransactionFormState {
+  const now = toLocalDateTimeParts(new Date().toISOString());
+
+  return {
+    type: 'expense',
+    amount: '',
+    category: 'food',
+    note: '',
+    happenedAtDate: now.date,
+    happenedAtTime: now.time,
+    isRecurring: false,
+    recurringInterval: 'monthly',
+  };
+}
+
+const defaultSettings: FinanceSettings = {
+  monthlyLimitCents: 0,
+  dailyLimitCents: 0,
+  monthlySavingsTargetCents: 0,
+  notifyThresholdPercent: 80,
+  smartAlertsEnabled: true,
+  emailAlertsEnabled: true,
+  pushAlertsEnabled: true,
+};
+
+function monthKey(date = new Date()): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function toCurrency(cents: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
+function toAmountCents(rawAmount: string): number {
+  const value = Number(rawAmount);
+  if (Number.isNaN(value) || value <= 0) {
+    return 0;
+  }
+
+  return Math.round(value * 100);
+}
+
+function toLocalDateTimeParts(dateString: string): { date: string; time: string } {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) {
+    return { date: '', time: '' };
+  }
+
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+  const localIso = new Date(date.getTime() - offsetMs).toISOString();
+
+  return {
+    date: localIso.slice(0, 10),
+    time: localIso.slice(11, 16),
+  };
+}
+
+function toIsoOrUndefined(date: string, time: string): string | undefined {
+  if (!date || !time) {
+    return undefined;
+  }
+
+  const parsed = new Date(`${date}T${time}`);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+}
+
+export default function FinanceTracker() {
+  const [month, setMonth] = useState(monthKey());
+  const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
+  const [summary, setSummary] = useState<FinanceSummary | null>(null);
+  const [settings, setSettings] = useState<FinanceSettings>(defaultSettings);
+  const [settingsDraft, setSettingsDraft] = useState<FinanceSettings>(defaultSettings);
+  const [form, setForm] = useState<TransactionFormState>(() => createDefaultFormState());
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState('');
+  const [notifyEnabled, setNotifyEnabled] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [lastAlertSent, setLastAlertSent] = useState('');
+
+  const netTone = useMemo(() => {
+    if (!summary) return 'neutral';
+    if (summary.totals.netCents > 0) return 'positive';
+    if (summary.totals.netCents < 0) return 'negative';
+    return 'neutral';
+  }, [summary]);
+
+  useEffect(() => {
+    loadData();
+  }, [month]);
+
+  useEffect(() => {
+    checkPushSubscription();
+  }, []);
+
+  async function loadData() {
+    setLoading(true);
+    setFeedback('');
+
+    try {
+      const [txRes, summaryRes, settingsRes] = await Promise.all([
+        fetch(`/api/finance/transactions?month=${encodeURIComponent(month)}`, {
+          cache: 'no-store',
+        }),
+        fetch(`/api/finance/summary?month=${encodeURIComponent(month)}`, { cache: 'no-store' }),
+        fetch('/api/finance/settings', { cache: 'no-store' }),
+      ]);
+
+      if (!txRes.ok || !summaryRes.ok || !settingsRes.ok) {
+        throw new Error('Failed to fetch finance data');
+      }
+
+      const [txData, summaryData, settingsData] = await Promise.all([
+        txRes.json(),
+        summaryRes.json(),
+        settingsRes.json(),
+      ]);
+
+      const mergedSettings = {
+        ...defaultSettings,
+        ...(settingsData as Partial<FinanceSettings>),
+      };
+
+      setTransactions(txData as FinanceTransaction[]);
+      setSummary(summaryData as FinanceSummary);
+      setSettings(mergedSettings);
+      setSettingsDraft(mergedSettings);
+    } catch (error) {
+      console.error(error);
+      setFeedback('Unable to load tracker data right now.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function urlBase64ToUint8Array(base64String: string): Uint8Array {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+  }
+
+  async function checkPushSubscription() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setPushEnabled(false);
+      return;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      const currentSubscription = await registration.pushManager.getSubscription();
+      setPushEnabled(Boolean(currentSubscription));
+    } catch (error) {
+      console.error('Failed to check finance push subscription:', error);
+      setPushEnabled(false);
+    }
+  }
+
+  async function enableFinanceNotifications() {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      setFeedback('This browser does not support notifications.');
+      return;
+    }
+
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setFeedback('Push notifications are not supported in this browser.');
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+
+    if (permission !== 'granted') {
+      setNotifyEnabled(false);
+      setFeedback('Notification permission was not granted.');
+      return;
+    }
+
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+
+    if (!vapidPublicKey) {
+      setNotifyEnabled(true);
+      setFeedback('Browser alerts enabled, but push is not configured (missing VAPID key).');
+      return;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      const existing = await registration.pushManager.getSubscription();
+
+      const subscription =
+        existing ||
+        (await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
+        }));
+
+      const saveRes = await fetch('/api/notifications/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subscription.toJSON()),
+      });
+
+      if (!saveRes.ok) {
+        throw new Error('Failed to save push subscription');
+      }
+
+      setNotifyEnabled(true);
+      setPushEnabled(true);
+      setFeedback('Finance notifications enabled (browser + push).');
+    } catch (error) {
+      console.error(error);
+      setNotifyEnabled(true);
+      setFeedback('Browser alerts enabled, but push subscription failed.');
+    }
+  }
+
+  useEffect(() => {
+    if (!notifyEnabled || !summary || summary.alerts.length === 0) {
+      return;
+    }
+
+    const priority = summary.alerts.find((a) => a.level === 'critical') || summary.alerts[0];
+    const alertKey = `${summary.month}:${priority.level}:${priority.message}`;
+
+    if (lastAlertSent === alertKey) {
+      return;
+    }
+
+    setLastAlertSent(alertKey);
+    new Notification('Finance Tracker Alert', {
+      body: priority.message,
+      tag: `finance-alert-${summary.month}`,
+    });
+  }, [notifyEnabled, summary, lastAlertSent]);
+
+  function startEdit(tx: FinanceTransaction) {
+    const parts = toLocalDateTimeParts(tx.happenedAt);
+
+    setEditingId(tx.id);
+    setForm({
+      type: tx.type,
+      amount: (tx.amountCents / 100).toFixed(2),
+      category: tx.category,
+      note: tx.note || '',
+      happenedAtDate: parts.date,
+      happenedAtTime: parts.time,
+      isRecurring: tx.isRecurring,
+      recurringInterval: tx.recurringInterval || 'monthly',
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function resetForm() {
+    setEditingId(null);
+    setForm(createDefaultFormState());
+  }
+
+  async function saveTransaction(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setFeedback('');
+
+    const amountCents = toAmountCents(form.amount);
+    if (amountCents <= 0) {
+      setFeedback('Please add a valid amount.');
+      setSaving(false);
+      return;
+    }
+
+    if (!form.happenedAtDate || !form.happenedAtTime) {
+      setFeedback('Please select both date and time.');
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const method = editingId ? 'PUT' : 'POST';
+      const payload = {
+        id: editingId || undefined,
+        type: form.type,
+        amountCents,
+        category: form.category,
+        note: form.note,
+        happenedAt: toIsoOrUndefined(form.happenedAtDate, form.happenedAtTime),
+        isRecurring: form.isRecurring,
+        recurringInterval: form.isRecurring ? form.recurringInterval : undefined,
+      };
+
+      const res = await fetch('/api/finance/transactions', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to save transaction');
+      }
+
+      resetForm();
+      setFeedback(editingId ? 'Transaction updated.' : 'Transaction added.');
+      await loadData();
+    } catch (error) {
+      console.error(error);
+      setFeedback('Could not save transaction.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteTransaction(id: string) {
+    if (!window.confirm('Delete this transaction?')) {
+      return;
+    }
+
+    const res = await fetch(`/api/finance/transactions?id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+
+    if (!res.ok) {
+      setFeedback('Could not delete transaction.');
+      return;
+    }
+
+    if (editingId === id) {
+      resetForm();
+    }
+
+    setFeedback('Transaction deleted.');
+    await loadData();
+  }
+
+  async function saveSettings(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFeedback('');
+
+    const payload = {
+      ...settingsDraft,
+      monthlyLimitCents: Math.max(0, Math.round(settingsDraft.monthlyLimitCents)),
+      dailyLimitCents: Math.max(0, Math.round(settingsDraft.dailyLimitCents)),
+      monthlySavingsTargetCents: Math.max(0, Math.round(settingsDraft.monthlySavingsTargetCents)),
+      notifyThresholdPercent: Math.min(
+        100,
+        Math.max(50, Math.round(settingsDraft.notifyThresholdPercent)),
+      ),
+      emailAlertsEnabled: settingsDraft.emailAlertsEnabled,
+      pushAlertsEnabled: settingsDraft.pushAlertsEnabled,
+    };
+
+    const res = await fetch('/api/finance/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      setFeedback('Could not save limit settings.');
+      return;
+    }
+
+    setSettings(payload);
+    setFeedback('Limit settings saved.');
+    await loadData();
+  }
+
+  const topAlerts = summary?.alerts.slice(0, 3) || [];
+  const isInitialLoading = loading && !summary;
+
+  return (
+    <section className="finance-page">
+      <header className="finance-header">
+        <div>
+          <h1 className="page-title">Advanced Tracker</h1>
+          <p className="page-subtitle">
+            Monthly cashflow intelligence with smart limits, category analytics, and savings nudges.
+          </p>
+        </div>
+
+        <div className="finance-header-actions">
+          <Input
+            id="finance-month"
+            type="month"
+            value={month}
+            onChange={(event) => setMonth(event.target.value)}
+            className="finance-month-input"
+          />
+
+          <button
+            type="button"
+            className="finance-secondary-btn"
+            onClick={enableFinanceNotifications}
+          >
+            {pushEnabled ? 'Push Ready' : 'Enable Finance Alerts'}
+          </button>
+        </div>
+      </header>
+
+      {!isInitialLoading && topAlerts.length > 0 && (
+        <div className="finance-alerts">
+          {topAlerts.map((alert) => (
+            <p
+              key={`${alert.level}-${alert.message}`}
+              className={`finance-alert finance-alert--${alert.level}`}
+            >
+              {alert.message}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {isInitialLoading && (
+        <div className="finance-kpis" aria-hidden="true">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <article className="finance-kpi" key={`kpi-skeleton-${index}`}>
+              <div className="flex flex-col items-start gap-1">
+                <Skeleton className="h-3.5 w-20" />
+                <Skeleton className="h-7 w-28" />
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {!isInitialLoading && summary && (
+        <div className="finance-kpis">
+          <article className="finance-kpi">
+            <span>Income</span>
+            <strong>{toCurrency(summary.totals.incomeCents)}</strong>
+          </article>
+          <article className="finance-kpi">
+            <span>Expense</span>
+            <strong>{toCurrency(summary.totals.expenseCents)}</strong>
+          </article>
+          <article className={`finance-kpi finance-kpi--${netTone}`}>
+            <span>Net</span>
+            <strong>{toCurrency(summary.totals.netCents)}</strong>
+          </article>
+          <article className="finance-kpi">
+            <span>Savings Rate</span>
+            <strong>{summary.totals.savingsRatePercent}%</strong>
+          </article>
+        </div>
+      )}
+
+      <div className="finance-grid">
+        <Card>
+          <CardHeader>
+            <CardTitle>{editingId ? 'Edit Transaction' : 'Add Transaction'}</CardTitle>
+            <CardDescription>Track expense and income with recurring support.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="finance-form" onSubmit={saveTransaction}>
+              <div className="finance-form-row">
+                <div>
+                  <Label htmlFor="finance-type">Type</Label>
+                  <SearchableSelect
+                    id="finance-type"
+                    options={typeOptions}
+                    value={form.type}
+                    onChange={(value) =>
+                      setForm((prev) => ({ ...prev, type: value as TransactionType }))
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="finance-amount">Amount</Label>
+                  <Input
+                    id="finance-amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.amount}
+                    onChange={(event) =>
+                      setForm((prev) => ({ ...prev, amount: event.target.value }))
+                    }
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="finance-category">Category</Label>
+                <SearchableSelect
+                  id="finance-category"
+                  options={categoryOptions}
+                  value={form.category}
+                  onChange={(value) => setForm((prev) => ({ ...prev, category: value }))}
+                  searchable
+                />
+              </div>
+
+              <div className="finance-form-row">
+                <div>
+                  <Label htmlFor="finance-date">Date</Label>
+                  <Input
+                    id="finance-date"
+                    type="date"
+                    value={form.happenedAtDate}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        happenedAtDate: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="finance-time">Time</Label>
+                  <Input
+                    id="finance-time"
+                    type="time"
+                    value={form.happenedAtTime}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        happenedAtTime: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="finance-recurring-row">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={form.isRecurring}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        isRecurring: event.target.checked,
+                      }))
+                    }
+                  />
+                  Recurring
+                </label>
+
+                {form.isRecurring && (
+                  <SearchableSelect
+                    options={recurringOptions}
+                    value={form.recurringInterval}
+                    onChange={(value) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        recurringInterval: value as 'weekly' | 'monthly',
+                      }))
+                    }
+                  />
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="finance-note">Notes</Label>
+                <Textarea
+                  id="finance-note"
+                  rows={2}
+                  value={form.note}
+                  onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))}
+                  placeholder="Optional context"
+                />
+              </div>
+
+              <div className="finance-actions">
+                <button type="submit" disabled={saving}>
+                  {saving ? 'Saving...' : editingId ? 'Update Transaction' : 'Add Transaction'}
+                </button>
+                {editingId && (
+                  <button type="button" className="finance-secondary-btn" onClick={resetForm}>
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Limits & Smart Alerts</CardTitle>
+            <CardDescription>
+              Set safety rails to get proactive savings nudges before overspending.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="finance-form" onSubmit={saveSettings}>
+              <div className="finance-form-row">
+                <div>
+                  <Label htmlFor="monthly-limit">Monthly Limit</Label>
+                  <Input
+                    id="monthly-limit"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={(settingsDraft.monthlyLimitCents / 100).toFixed(2)}
+                    onChange={(event) =>
+                      setSettingsDraft((prev) => ({
+                        ...prev,
+                        monthlyLimitCents: Math.round(Number(event.target.value || 0) * 100),
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="daily-limit">Daily Limit</Label>
+                  <Input
+                    id="daily-limit"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={(settingsDraft.dailyLimitCents / 100).toFixed(2)}
+                    onChange={(event) =>
+                      setSettingsDraft((prev) => ({
+                        ...prev,
+                        dailyLimitCents: Math.round(Number(event.target.value || 0) * 100),
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="finance-form-row">
+                <div>
+                  <Label htmlFor="savings-target">Monthly Savings Target</Label>
+                  <Input
+                    id="savings-target"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={(settingsDraft.monthlySavingsTargetCents / 100).toFixed(2)}
+                    onChange={(event) =>
+                      setSettingsDraft((prev) => ({
+                        ...prev,
+                        monthlySavingsTargetCents: Math.round(
+                          Number(event.target.value || 0) * 100,
+                        ),
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="threshold">Notify At (%)</Label>
+                  <Input
+                    id="threshold"
+                    type="number"
+                    min={50}
+                    max={100}
+                    step={1}
+                    value={settingsDraft.notifyThresholdPercent}
+                    onChange={(event) =>
+                      setSettingsDraft((prev) => ({
+                        ...prev,
+                        notifyThresholdPercent: Number(event.target.value || 80),
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+
+              <label className="finance-toggle">
+                <input
+                  type="checkbox"
+                  checked={settingsDraft.smartAlertsEnabled}
+                  onChange={(event) =>
+                    setSettingsDraft((prev) => ({
+                      ...prev,
+                      smartAlertsEnabled: event.target.checked,
+                    }))
+                  }
+                />
+                Enable smart alerts and save-money recommendations
+              </label>
+
+              <div className="finance-channel-grid">
+                <label className="finance-toggle">
+                  <input
+                    type="checkbox"
+                    checked={settingsDraft.emailAlertsEnabled}
+                    onChange={(event) =>
+                      setSettingsDraft((prev) => ({
+                        ...prev,
+                        emailAlertsEnabled: event.target.checked,
+                      }))
+                    }
+                  />
+                  Send finance alerts by email
+                </label>
+
+                <label className="finance-toggle">
+                  <input
+                    type="checkbox"
+                    checked={settingsDraft.pushAlertsEnabled}
+                    onChange={(event) =>
+                      setSettingsDraft((prev) => ({
+                        ...prev,
+                        pushAlertsEnabled: event.target.checked,
+                      }))
+                    }
+                  />
+                  Send finance alerts by push
+                </label>
+              </div>
+
+              <div className="finance-actions">
+                <button type="submit">Save Limits</button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+
+      {!isInitialLoading && (
+        <Card className="finance-transactions-card">
+          <CardHeader>
+            <CardTitle>Recent Transactions ({month})</CardTitle>
+            <CardDescription>
+              Track every income and expense with edit/delete controls and category-level
+              visibility.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="finance-transaction-list" aria-hidden="true">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <article className="finance-transaction" key={`tx-skeleton-${index}`}>
+                    <div className="w-full">
+                      <Skeleton className="h-5 w-40" />
+                      <Skeleton className="mt-2 h-4 w-64" />
+                      <Skeleton className="mt-2 h-4 w-36" />
+                    </div>
+
+                    <div className="finance-transaction-side">
+                      <Skeleton className="h-5 w-24" />
+                      <div className="finance-inline-actions">
+                        <Skeleton className="h-7 w-14" />
+                        <Skeleton className="h-7 w-14" />
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : transactions.length === 0 ? (
+              <p className="finance-muted">No transactions yet for this month.</p>
+            ) : (
+              <div className="finance-transaction-list">
+                {transactions.map((tx) => (
+                  <article
+                    key={tx.id}
+                    className={`finance-transaction finance-transaction--${tx.type}`}
+                  >
+                    <div>
+                      <h3>
+                        {categoryOptions.find((item) => item.id === tx.category)?.label ||
+                          tx.category}
+                      </h3>
+                      <p>{tx.note || 'No notes'}</p>
+                      <small>
+                        {new Date(tx.happenedAt).toLocaleString()}{' '}
+                        {tx.isRecurring ? `• Recurs ${tx.recurringInterval}` : ''}
+                      </small>
+                    </div>
+
+                    <div className="finance-transaction-side">
+                      <strong>
+                        {tx.type === 'income' ? '+' : '-'} {toCurrency(tx.amountCents)}
+                      </strong>
+                      <div className="finance-inline-actions">
+                        <button
+                          type="button"
+                          className="finance-link-btn"
+                          onClick={() => startEdit(tx)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="finance-link-btn finance-link-btn--danger"
+                          onClick={() => deleteTransaction(tx.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {!isInitialLoading && summary && summary.byCategory.length > 0 && (
+        <Card className="finance-transactions-card">
+          <CardHeader>
+            <CardTitle>Top Spending Categories</CardTitle>
+            <CardDescription>
+              Projected monthly spend: {toCurrency(summary.projectedMonthlyExpenseCents)}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="finance-category-bars">
+              {summary.byCategory.map((entry) => {
+                const percent = summary.totals.expenseCents
+                  ? Math.round((entry.value / summary.totals.expenseCents) * 100)
+                  : 0;
+
+                return (
+                  <div key={entry.category} className="finance-category-row">
+                    <div>
+                      <strong>{entry.category}</strong>
+                      <span>{toCurrency(entry.value)}</span>
+                    </div>
+                    <div className="finance-progress">
+                      <div style={{ width: `${Math.max(6, percent)}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {feedback && <p className="finance-feedback">{feedback}</p>}
+    </section>
+  );
+}

@@ -176,3 +176,120 @@ export const pushSubscriptions = pgTable(
   },
   (table) => [index('idx_push_user').on(table.userId)],
 );
+
+export const financeTransactions = pgTable(
+  'finance_transactions',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    type: text('type').notNull().default('expense'),
+    amountCents: integer('amount_cents').notNull(),
+    category: text('category').notNull(),
+    note: text('note'),
+    happenedAt: timestamp('happened_at', { mode: 'date' }).notNull(),
+    isRecurring: boolean('is_recurring').notNull().default(false),
+    recurringInterval: text('recurring_interval'),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_finance_transactions_user').on(table.userId),
+    index('idx_finance_transactions_happened_at').on(table.happenedAt),
+    index('idx_finance_transactions_type').on(table.type),
+  ],
+);
+
+export const financeSettings = pgTable(
+  'finance_settings',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    monthlyLimitCents: integer('monthly_limit_cents').notNull().default(0),
+    dailyLimitCents: integer('daily_limit_cents').notNull().default(0),
+    monthlySavingsTargetCents: integer('monthly_savings_target_cents').notNull().default(0),
+    notifyThresholdPercent: integer('notify_threshold_percent').notNull().default(80),
+    smartAlertsEnabled: boolean('smart_alerts_enabled').notNull().default(true),
+    emailAlertsEnabled: boolean('email_alerts_enabled').notNull().default(true),
+    pushAlertsEnabled: boolean('push_alerts_enabled').notNull().default(true),
+    lastAlertSentAt: timestamp('last_alert_sent_at', { mode: 'date' }),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (table) => [index('idx_finance_settings_user').on(table.userId)],
+);
+
+export const financeWorkLogs = pgTable(
+  'finance_work_logs',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    todoId: text('todo_id').references(() => todos.id, { onDelete: 'set null' }),
+    workDate: timestamp('work_date', { mode: 'date' }).notNull(),
+    minutesWorked: integer('minutes_worked').notNull(),
+    hourlyRateCents: integer('hourly_rate_cents').notNull(),
+    note: text('note'),
+    incomeTransactionId: text('income_transaction_id').references(() => financeTransactions.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_finance_work_logs_user').on(table.userId),
+    index('idx_finance_work_logs_work_date').on(table.workDate),
+    index('idx_finance_work_logs_todo').on(table.todoId),
+  ],
+);
+
+export const financeReceivables = pgTable(
+  'finance_receivables',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    todoId: text('todo_id').references(() => todos.id, { onDelete: 'set null' }),
+    workLogId: text('work_log_id').references(() => financeWorkLogs.id, { onDelete: 'set null' }),
+    payerName: text('payer_name').notNull(),
+    payerEmail: text('payer_email'),
+    title: text('title').notNull(),
+    category: text('category').notNull().default('general'),
+    groupKey: text('group_key'),
+    amountCents: integer('amount_cents').notNull(),
+    status: text('status').notNull().default('pending'),
+    dueAt: timestamp('due_at', { mode: 'date' }),
+    note: text('note'),
+    minutesWorked: integer('minutes_worked'),
+    hourlyRateCents: integer('hourly_rate_cents'),
+    includeWorkDetails: boolean('include_work_details').notNull().default(false),
+    paidAt: timestamp('paid_at', { mode: 'date' }),
+    incomeTransactionId: text('income_transaction_id').references(() => financeTransactions.id, {
+      onDelete: 'set null',
+    }),
+    lastReminderSentAt: timestamp('last_reminder_sent_at', { mode: 'date' }),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_finance_receivables_user').on(table.userId),
+    index('idx_finance_receivables_status').on(table.status),
+    index('idx_finance_receivables_due').on(table.dueAt),
+    index('idx_finance_receivables_payer').on(table.payerName),
+    index('idx_finance_receivables_group').on(table.groupKey),
+  ],
+);

@@ -3,12 +3,14 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CheckboxWithLabel } from '@/components/ui/checkbox-with-label';
 import ConfirmDialog from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { SearchableSelectWithLabel } from '@/components/ui/searchable-select-with-label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
+import { TextAreaWithLabel } from '@/components/ui/TextAreaWithLabel';
+import { InputWithLabel } from '@/components/ui/input-with-label';
 
 type TransactionType = 'income' | 'expense';
 
@@ -563,9 +565,9 @@ export default function FinanceTracker() {
             <form className="finance-form" onSubmit={saveTransaction}>
               <div className="finance-form-row">
                 <div>
-                  <Label htmlFor="finance-type">Type</Label>
-                  <SearchableSelect
-                    id="finance-type"
+                  <SearchableSelectWithLabel
+                    fieldTitle="Type"
+                    nameInSchema="finance-type"
                     options={typeOptions}
                     value={form.type}
                     onChange={(value) =>
@@ -574,9 +576,9 @@ export default function FinanceTracker() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="finance-amount">Amount</Label>
-                  <Input
-                    id="finance-amount"
+                  <InputWithLabel
+                    fieldTitle="Amount"
+                    nameInSchema="finance-amount"
                     type="number"
                     step="0.01"
                     min="0"
@@ -590,9 +592,9 @@ export default function FinanceTracker() {
               </div>
 
               <div>
-                <Label htmlFor="finance-category">Category</Label>
-                <SearchableSelect
-                  id="finance-category"
+                <SearchableSelectWithLabel
+                  fieldTitle="Category"
+                  nameInSchema="finance-category"
                   options={categoryOptions}
                   value={form.category}
                   onChange={(value) => setForm((prev) => ({ ...prev, category: value }))}
@@ -602,9 +604,9 @@ export default function FinanceTracker() {
 
               <div className="finance-form-row">
                 <div>
-                  <Label htmlFor="finance-date">Date</Label>
-                  <Input
-                    id="finance-date"
+                  <InputWithLabel
+                    fieldTitle="Date"
+                    nameInSchema="finance-date"
                     type="date"
                     value={form.happenedAtDate}
                     onChange={(event) =>
@@ -616,9 +618,9 @@ export default function FinanceTracker() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="finance-time">Time</Label>
-                  <Input
-                    id="finance-time"
+                  <InputWithLabel
+                    fieldTitle="Time"
+                    nameInSchema="finance-time"
                     type="time"
                     value={form.happenedAtTime}
                     onChange={(event) =>
@@ -632,19 +634,18 @@ export default function FinanceTracker() {
               </div>
 
               <div className="finance-recurring-row">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={form.isRecurring}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        isRecurring: event.target.checked,
-                      }))
-                    }
-                  />
-                  Recurring
-                </label>
+                <CheckboxWithLabel
+                  id="finance-recurring"
+                  className="w-full"
+                  label="Recurring"
+                  checked={form.isRecurring}
+                  onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      isRecurring: checked,
+                    }))
+                  }
+                />
 
                 {form.isRecurring && (
                   <SearchableSelect
@@ -661,9 +662,9 @@ export default function FinanceTracker() {
               </div>
 
               <div>
-                <Label htmlFor="finance-note">Notes</Label>
-                <Textarea
-                  id="finance-note"
+                <TextAreaWithLabel
+                  fieldTitle="Notes"
+                  nameInSchema="finance-note"
                   rows={2}
                   value={form.note}
                   onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))}
@@ -696,9 +697,9 @@ export default function FinanceTracker() {
             <form className="finance-form" onSubmit={saveSettings}>
               <div className="finance-form-row">
                 <div>
-                  <Label htmlFor="monthly-limit">Monthly Limit</Label>
-                  <Input
-                    id="monthly-limit"
+                  <InputWithLabel
+                    fieldTitle="Monthly Limit"
+                    nameInSchema="monthly-limit"
                     type="number"
                     min={0}
                     step={1}
@@ -712,9 +713,9 @@ export default function FinanceTracker() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="daily-limit">Daily Limit</Label>
-                  <Input
-                    id="daily-limit"
+                  <InputWithLabel
+                    fieldTitle="Daily Limit"
+                    nameInSchema="daily-limit"
                     type="number"
                     min={0}
                     step={1}
@@ -731,9 +732,9 @@ export default function FinanceTracker() {
 
               <div className="finance-form-row">
                 <div>
-                  <Label htmlFor="savings-target">Monthly Savings Target</Label>
-                  <Input
-                    id="savings-target"
+                  <InputWithLabel
+                    fieldTitle="Monthly Savings Target"
+                    nameInSchema="savings-target"
                     type="number"
                     min={0}
                     step={1}
@@ -749,9 +750,9 @@ export default function FinanceTracker() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="threshold">Notify At (%)</Label>
-                  <Input
-                    id="threshold"
+                  <InputWithLabel
+                    fieldTitle="Notify At (%)"
+                    nameInSchema="threshold"
                     type="number"
                     min={50}
                     max={100}
@@ -767,48 +768,45 @@ export default function FinanceTracker() {
                 </div>
               </div>
 
-              <label className="finance-toggle">
-                <input
-                  type="checkbox"
-                  checked={settingsDraft.smartAlertsEnabled}
-                  onChange={(event) =>
+              <CheckboxWithLabel
+                id="finance-smart-alerts"
+                className="finance-toggle"
+                label="Enable smart alerts and save-money recommendations"
+                checked={settingsDraft.smartAlertsEnabled}
+                onCheckedChange={(checked) =>
+                  setSettingsDraft((prev) => ({
+                    ...prev,
+                    smartAlertsEnabled: checked,
+                  }))
+                }
+              />
+
+              <div className="finance-channel-grid">
+                <CheckboxWithLabel
+                  id="finance-email-alerts"
+                  className="finance-toggle"
+                  label="Send finance alerts by email"
+                  checked={settingsDraft.emailAlertsEnabled}
+                  onCheckedChange={(checked) =>
                     setSettingsDraft((prev) => ({
                       ...prev,
-                      smartAlertsEnabled: event.target.checked,
+                      emailAlertsEnabled: checked,
                     }))
                   }
                 />
-                Enable smart alerts and save-money recommendations
-              </label>
 
-              <div className="finance-channel-grid">
-                <label className="finance-toggle">
-                  <input
-                    type="checkbox"
-                    checked={settingsDraft.emailAlertsEnabled}
-                    onChange={(event) =>
-                      setSettingsDraft((prev) => ({
-                        ...prev,
-                        emailAlertsEnabled: event.target.checked,
-                      }))
-                    }
-                  />
-                  Send finance alerts by email
-                </label>
-
-                <label className="finance-toggle">
-                  <input
-                    type="checkbox"
-                    checked={settingsDraft.pushAlertsEnabled}
-                    onChange={(event) =>
-                      setSettingsDraft((prev) => ({
-                        ...prev,
-                        pushAlertsEnabled: event.target.checked,
-                      }))
-                    }
-                  />
-                  Send finance alerts by push
-                </label>
+                <CheckboxWithLabel
+                  id="finance-push-alerts"
+                  className="finance-toggle"
+                  label="Send finance alerts by push"
+                  checked={settingsDraft.pushAlertsEnabled}
+                  onCheckedChange={(checked) =>
+                    setSettingsDraft((prev) => ({
+                      ...prev,
+                      pushAlertsEnabled: checked,
+                    }))
+                  }
+                />
               </div>
 
               <div className="finance-actions">

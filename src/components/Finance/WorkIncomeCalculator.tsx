@@ -3,11 +3,13 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CheckboxWithLabel } from '@/components/ui/checkbox-with-label';
 import ConfirmDialog from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { Textarea } from '@/components/ui/textarea';
+import { SearchableSelectWithLabel } from '@/components/ui/searchable-select-with-label';
+import { TextAreaWithLabel } from '@/components/ui/TextAreaWithLabel';
+import { InputWithLabel } from '@/components/ui/input-with-label';
 
 interface PlannerTodoItem {
   id: string;
@@ -468,6 +470,48 @@ export default function WorkIncomeCalculator() {
     }
   }
 
+  async function markReceivableUnpaid(id: string) {
+    const target = receivables.find((item) => item.id === id);
+    if (!target) {
+      toast.error('Receivable not found.');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/finance/receivables', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: target.id,
+          todoId: target.todoId || undefined,
+          workLogId: target.workLogId || undefined,
+          payerName: target.payerName,
+          payerEmail: target.payerEmail || '',
+          title: target.title,
+          category: target.category || 'general',
+          groupKey: target.groupKey || '',
+          amountCents: target.amountCents,
+          status: 'pending',
+          dueAt: target.dueAt || undefined,
+          note: target.note || '',
+          minutesWorked: target.minutesWorked || undefined,
+          hourlyRateCents: target.hourlyRateCents || undefined,
+          includeWorkDetails: target.includeWorkDetails,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to mark receivable as unpaid');
+      }
+
+      toast.success('Marked as unpaid.');
+      await loadData();
+    } catch (error) {
+      console.error(error);
+      toast.error('Could not mark as unpaid.');
+    }
+  }
+
   async function sendReminders(ids: string[]) {
     if (ids.length === 0) {
       toast.error('Select at least one pending receivable first.');
@@ -655,11 +699,11 @@ export default function WorkIncomeCalculator() {
               </CardHeader>
               <CardContent>
                 <form className="finance-form" onSubmit={saveWorkLog}>
-                  <div className="finance-form-row">
+                  <div className="finance-form-row ">
                     <div>
-                      <Label htmlFor="work-hours">Hours</Label>
-                      <Input
-                        id="work-hours"
+                      <InputWithLabel
+                        fieldTitle="Hours"
+                        nameInSchema="work-hours"
                         type="number"
                         min={0}
                         step="0.5"
@@ -673,9 +717,9 @@ export default function WorkIncomeCalculator() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="work-minutes">Minutes</Label>
-                      <Input
-                        id="work-minutes"
+                      <InputWithLabel
+                        fieldTitle="Minutes"
+                        nameInSchema="work-minutes"
                         type="number"
                         min={0}
                         max={59}
@@ -691,11 +735,11 @@ export default function WorkIncomeCalculator() {
                     </div>
                   </div>
 
-                  <div className="finance-form-row">
+                  <div className="finance-form-row ">
                     <div>
-                      <Label htmlFor="work-rate">Rate / Hour</Label>
-                      <Input
-                        id="work-rate"
+                      <InputWithLabel
+                        fieldTitle="Rate / Hour"
+                        nameInSchema="work-rate"
                         type="number"
                         min={0}
                         step="0.01"
@@ -710,9 +754,9 @@ export default function WorkIncomeCalculator() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="work-date">Work Date</Label>
-                      <Input
-                        id="work-date"
+                      <InputWithLabel
+                        fieldTitle="Work Date"
+                        nameInSchema="work-date"
                         type="date"
                         value={workLogForm.workDate}
                         onChange={(event) =>
@@ -725,10 +769,10 @@ export default function WorkIncomeCalculator() {
                     </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="work-linked-todo">Linked Planner Task</Label>
-                    <SearchableSelect
-                      id="work-linked-todo"
+                  <div style={{ marginTop: '1rem' }}>
+                    <SearchableSelectWithLabel
+                      fieldTitle="Linked Planner Task"
+                      nameInSchema="work-linked-todo"
                       options={todoOptions}
                       value={workLogForm.todoId}
                       onChange={(value) => setWorkLogForm((prev) => ({ ...prev, todoId: value }))}
@@ -736,10 +780,10 @@ export default function WorkIncomeCalculator() {
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="work-note">Work Note</Label>
-                    <Textarea
-                      id="work-note"
+                  <div style={{ marginTop: '1rem' }}>
+                    <TextAreaWithLabel
+                      fieldTitle="Work Note"
+                      nameInSchema="work-note"
                       rows={2}
                       value={workLogForm.note}
                       onChange={(event) =>
@@ -834,11 +878,11 @@ export default function WorkIncomeCalculator() {
           </CardHeader>
           <CardContent>
             <form className="finance-form" onSubmit={saveReceivable}>
-              <div className="finance-form-row">
+              <div className="finance-form-row ">
                 <div>
-                  <Label htmlFor="receivable-payer">Person / Company</Label>
-                  <Input
-                    id="receivable-payer"
+                  <InputWithLabel
+                    fieldTitle="Person / Company"
+                    nameInSchema="receivable-payer"
                     value={receivableForm.payerName}
                     onChange={(event) =>
                       setReceivableForm((prev) => ({ ...prev, payerName: event.target.value }))
@@ -848,9 +892,9 @@ export default function WorkIncomeCalculator() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="receivable-email">Payer Email</Label>
-                  <Input
-                    id="receivable-email"
+                  <InputWithLabel
+                    fieldTitle="Payer Email"
+                    nameInSchema="receivable-email"
                     type="email"
                     value={receivableForm.payerEmail}
                     onChange={(event) =>
@@ -861,11 +905,11 @@ export default function WorkIncomeCalculator() {
                 </div>
               </div>
 
-              <div className="finance-form-row">
+              <div className="finance-form-row ">
                 <div>
-                  <Label htmlFor="receivable-title">Payment For</Label>
-                  <Input
-                    id="receivable-title"
+                  <InputWithLabel
+                    fieldTitle="Payment For"
+                    nameInSchema="receivable-title"
                     value={receivableForm.title}
                     onChange={(event) =>
                       setReceivableForm((prev) => ({ ...prev, title: event.target.value }))
@@ -875,9 +919,9 @@ export default function WorkIncomeCalculator() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="receivable-amount">Total Amount</Label>
-                  <Input
-                    id="receivable-amount"
+                  <InputWithLabel
+                    fieldTitle="Total Amount"
+                    nameInSchema="receivable-amount"
                     type="number"
                     min={0}
                     step="0.01"
@@ -891,23 +935,22 @@ export default function WorkIncomeCalculator() {
                 </div>
               </div>
 
-              <label className="finance-toggle">
-                <input
-                  type="checkbox"
-                  checked={receivableForm.useHoursRate}
-                  onChange={(event) =>
-                    setReceivableForm((prev) => ({ ...prev, useHoursRate: event.target.checked }))
-                  }
-                />
-                Calculate total from work hours and hourly rate
-              </label>
+              <CheckboxWithLabel
+                id="receivable-use-hours"
+                className="finance-toggle mt-2 mb-4"
+                label="Calculate total from work hours and hourly rate"
+                checked={receivableForm.useHoursRate}
+                onCheckedChange={(checked) =>
+                  setReceivableForm((prev) => ({ ...prev, useHoursRate: checked }))
+                }
+              />
 
               {receivableForm.useHoursRate && (
-                <div className="finance-form-row">
+                <div className="finance-form-row ">
                   <div>
-                    <Label htmlFor="receivable-hours">Hours</Label>
-                    <Input
-                      id="receivable-hours"
+                    <InputWithLabel
+                      fieldTitle="Hours"
+                      nameInSchema="receivable-hours"
                       type="number"
                       min={0}
                       step="0.5"
@@ -918,9 +961,9 @@ export default function WorkIncomeCalculator() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="receivable-minutes">Minutes</Label>
-                    <Input
-                      id="receivable-minutes"
+                    <InputWithLabel
+                      fieldTitle="Minutes"
+                      nameInSchema="receivable-minutes"
                       type="number"
                       min={0}
                       max={59}
@@ -936,9 +979,9 @@ export default function WorkIncomeCalculator() {
 
               {receivableForm.useHoursRate && (
                 <div>
-                  <Label htmlFor="receivable-rate">Rate / Hour</Label>
-                  <Input
-                    id="receivable-rate"
+                  <InputWithLabel
+                    fieldTitle="Rate / Hour"
+                    nameInSchema="receivable-rate"
                     type="number"
                     min={0}
                     step="0.01"
@@ -951,11 +994,11 @@ export default function WorkIncomeCalculator() {
                 </div>
               )}
 
-              <div className="finance-form-row">
+              <div className="finance-form-row mb-4">
                 <div>
-                  <Label htmlFor="receivable-due-date">Due Date</Label>
-                  <Input
-                    id="receivable-due-date"
+                  <InputWithLabel
+                    fieldTitle="Due Date"
+                    nameInSchema="receivable-due-date"
                     type="date"
                     value={receivableForm.dueDate}
                     onChange={(event) =>
@@ -965,11 +1008,11 @@ export default function WorkIncomeCalculator() {
                 </div>
               </div>
 
-              <div className="finance-form-row">
+              <div className="finance-form-row ">
                 <div>
-                  <Label htmlFor="receivable-todo">Linked Planner Task</Label>
-                  <SearchableSelect
-                    id="receivable-todo"
+                  <SearchableSelectWithLabel
+                    fieldTitle="Linked Planner Task"
+                    nameInSchema="receivable-todo"
                     options={todoOptions}
                     value={receivableForm.todoId}
                     onChange={(value) => setReceivableForm((prev) => ({ ...prev, todoId: value }))}
@@ -977,9 +1020,9 @@ export default function WorkIncomeCalculator() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="receivable-work-log">Linked Work Log</Label>
-                  <SearchableSelect
-                    id="receivable-work-log"
+                  <SearchableSelectWithLabel
+                    fieldTitle="Linked Work Log"
+                    nameInSchema="receivable-work-log"
                     options={workLogOptions}
                     value={receivableForm.workLogId}
                     onChange={(value) =>
@@ -990,24 +1033,23 @@ export default function WorkIncomeCalculator() {
                 </div>
               </div>
 
-              <label className="finance-toggle">
-                <input
-                  type="checkbox"
-                  checked={receivableForm.includeWorkDetails}
-                  onChange={(event) =>
-                    setReceivableForm((prev) => ({
-                      ...prev,
-                      includeWorkDetails: event.target.checked,
-                    }))
-                  }
-                />
-                Include work hours and rate details in email reminder
-              </label>
+              <CheckboxWithLabel
+                id="receivable-include-work-details"
+                className="finance-toggle mt-2 mb-4"
+                label="Include work hours and rate details in email reminder"
+                checked={receivableForm.includeWorkDetails}
+                onCheckedChange={(checked) =>
+                  setReceivableForm((prev) => ({
+                    ...prev,
+                    includeWorkDetails: checked,
+                  }))
+                }
+              />
 
               <div>
-                <Label htmlFor="receivable-note">Notes</Label>
-                <Textarea
-                  id="receivable-note"
+                <TextAreaWithLabel
+                  fieldTitle="Notes"
+                  nameInSchema="receivable-note"
                   rows={2}
                   value={receivableForm.note}
                   onChange={(event) =>
@@ -1050,9 +1092,9 @@ export default function WorkIncomeCalculator() {
           <CardContent>
             <div className="finance-form" style={{ marginBottom: '0.8rem' }}>
               <div>
-                <Label htmlFor="receivable-reminder-message">Reminder Message (optional)</Label>
-                <Textarea
-                  id="receivable-reminder-message"
+                <TextAreaWithLabel
+                  fieldTitle="Reminder Message (optional)"
+                  nameInSchema="receivable-reminder-message"
                   rows={2}
                   value={reminderMessage}
                   onChange={(event) => setReminderMessage(event.target.value)}
@@ -1060,9 +1102,9 @@ export default function WorkIncomeCalculator() {
               </div>
 
               <div>
-                <Label htmlFor="receivable-reminder-template">Reminder Message Template</Label>
-                <Textarea
-                  id="receivable-reminder-template"
+                <TextAreaWithLabel
+                  fieldTitle="Reminder Message Template"
+                  nameInSchema="receivable-reminder-template"
                   rows={2}
                   value={reminderMessageTemplate}
                   onChange={(event) => setReminderMessageTemplate(event.target.value)}
@@ -1088,14 +1130,13 @@ export default function WorkIncomeCalculator() {
                 </div>
               </div>
 
-              <label className="finance-toggle">
-                <input
-                  type="checkbox"
-                  checked={includeDueDateInReminder}
-                  onChange={(event) => setIncludeDueDateInReminder(event.target.checked)}
-                />
-                Include due date in reminder email
-              </label>
+              <CheckboxWithLabel
+                id="receivable-include-due-date"
+                className="finance-toggle"
+                label="Include due date in reminder email"
+                checked={includeDueDateInReminder}
+                onCheckedChange={setIncludeDueDateInReminder}
+              />
 
               <div className="finance-actions">
                 <button
@@ -1146,14 +1187,13 @@ export default function WorkIncomeCalculator() {
                           </div>
 
                           <div className="finance-transaction-side">
-                            <label className="finance-toggle">
-                              <input
-                                type="checkbox"
-                                checked={selectedPendingIds.includes(item.id)}
-                                onChange={() => togglePendingSelection(item.id)}
-                              />
-                              Select
-                            </label>
+                            <CheckboxWithLabel
+                              id={`receivable-select-${item.id}`}
+                              className="finance-toggle"
+                              label="Select"
+                              checked={selectedPendingIds.includes(item.id)}
+                              onCheckedChange={() => togglePendingSelection(item.id)}
+                            />
                             <strong>+ {toCurrency(item.amountCents)}</strong>
                             <div className="finance-inline-actions">
                               <button
@@ -1224,6 +1264,15 @@ export default function WorkIncomeCalculator() {
                     </div>
                     <div className="finance-transaction-side">
                       <strong>+ {toCurrency(item.amountCents)}</strong>
+                      <div className="finance-inline-actions">
+                        <button
+                          type="button"
+                          className="finance-link-btn"
+                          onClick={() => void markReceivableUnpaid(item.id)}
+                        >
+                          Mark Unpaid
+                        </button>
+                      </div>
                     </div>
                   </article>
                 ))}

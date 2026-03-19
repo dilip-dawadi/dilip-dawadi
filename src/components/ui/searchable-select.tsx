@@ -10,7 +10,7 @@ export interface SearchableSelectOption {
   label: string;
 }
 
-interface SearchableSelectProps {
+export interface SearchableSelectProps {
   id?: string;
   options?: SearchableSelectOption[];
   value?: string;

@@ -3,6 +3,7 @@
 import { useFormContext } from 'react-hook-form';
 import { FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { InputHTMLAttributes, useState } from 'react';
 
 type Props = {
@@ -13,10 +14,37 @@ type Props = {
 
 export function InputWithLabel({ fieldTitle, nameInSchema, className, ...props }: Props) {
   const form = useFormContext();
-  if (!form) throw new Error('InputWithLabel must be used within a FormProvider');
+  const [onFocus, setOnFocus] = useState(false);
+
+  if (!form?.control) {
+    return (
+      <div className={`relative w-full ${props.disabled ? 'cursor-not-allowed' : ''}`}>
+        <Label
+          htmlFor={nameInSchema}
+          className="absolute left-3 top-[-0.55rem] z-10 bg-bg-alt px-1 text-xs font-medium tracking-wider"
+          style={{ color: 'var(--color-fg-light)' }}
+        >
+          {fieldTitle}
+        </Label>
+        <Input
+          id={nameInSchema}
+          className={className}
+          placeholder={!onFocus ? props.placeholder : ''}
+          {...props}
+          onFocus={(event) => {
+            setOnFocus(true);
+            props.onFocus?.(event);
+          }}
+          onBlur={(event) => {
+            setOnFocus(false);
+            props.onBlur?.(event);
+          }}
+        />
+      </div>
+    );
+  }
 
   const { error } = form.getFieldState(nameInSchema, form.formState);
-  const [onFocus, setOnFocus] = useState(false);
 
   return (
     <FormField

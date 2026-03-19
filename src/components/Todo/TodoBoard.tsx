@@ -4,11 +4,14 @@ import { signIn, useSession } from 'next-auth/react';
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CheckboxWithLabel } from '@/components/ui/checkbox-with-label';
 import ConfirmDialog from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { Textarea } from '@/components/ui/textarea';
+import { SearchableSelectWithLabel } from '@/components/ui/searchable-select-with-label';
+import { TextAreaWithLabel } from '@/components/ui/TextAreaWithLabel';
+import { InputWithLabel } from '@/components/ui/input-with-label';
 
 type Priority = 'low' | 'medium' | 'high';
 type TodoStatus = 'todo' | 'in-progress' | 'done';
@@ -512,9 +515,9 @@ export default function TodoBoard() {
           <form className="todo-form" onSubmit={saveTodo}>
             <div className="todo-form-grid">
               <div>
-                <Label htmlFor="todo-title">Task title</Label>
-                <Input
-                  id="todo-title"
+                <InputWithLabel
+                  fieldTitle="Task title"
+                  nameInSchema="todo-title"
                   value={form.title}
                   onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
                   placeholder="Ask friend to return money"
@@ -524,9 +527,9 @@ export default function TodoBoard() {
               </div>
 
               <div>
-                <Label htmlFor="todo-priority">Priority level</Label>
-                <SearchableSelect
-                  id="todo-priority"
+                <SearchableSelectWithLabel
+                  fieldTitle="Priority level"
+                  nameInSchema="todo-priority"
                   options={priorityOptions}
                   value={form.priority}
                   onChange={(value) =>
@@ -571,9 +574,9 @@ export default function TodoBoard() {
 
             <div className="todo-form-grid todo-form-grid--schedule">
               <div>
-                <Label htmlFor="todo-recurrence">Repeat</Label>
-                <SearchableSelect
-                  id="todo-recurrence"
+                <SearchableSelectWithLabel
+                  fieldTitle="Repeat"
+                  nameInSchema="todo-recurrence"
                   options={recurrenceOptions}
                   value={form.recurrence}
                   onChange={(value) =>
@@ -588,9 +591,9 @@ export default function TodoBoard() {
 
               {form.recurrence === 'every-n-days' && (
                 <div>
-                  <Label htmlFor="todo-repeat-days">Repeat every (days)</Label>
-                  <Input
-                    id="todo-repeat-days"
+                  <InputWithLabel
+                    fieldTitle="Repeat every (days)"
+                    nameInSchema="todo-repeat-days"
                     type="number"
                     min={1}
                     max={365}
@@ -608,9 +611,9 @@ export default function TodoBoard() {
             </div>
 
             <div className="todo-description-field">
-              <Label htmlFor="todo-description">Details</Label>
-              <Textarea
-                id="todo-description"
+              <TextAreaWithLabel
+                fieldTitle="Details"
+                nameInSchema="todo-description"
                 value={form.description}
                 onChange={(event) =>
                   setForm((prev) => ({
@@ -625,33 +628,29 @@ export default function TodoBoard() {
             </div>
 
             <div className="todo-options-row">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={form.emailReminder}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      emailReminder: event.target.checked,
-                    }))
-                  }
-                />
-                Email reminder
-              </label>
+              <CheckboxWithLabel
+                id="todo-email-reminder"
+                label="Email reminder"
+                checked={form.emailReminder}
+                onCheckedChange={(checked) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    emailReminder: checked,
+                  }))
+                }
+              />
 
-              <label>
-                <input
-                  type="checkbox"
-                  checked={form.pushReminder}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      pushReminder: event.target.checked,
-                    }))
-                  }
-                />
-                Push reminder
-              </label>
+              <CheckboxWithLabel
+                id="todo-push-reminder"
+                label="Push reminder"
+                checked={form.pushReminder}
+                onCheckedChange={(checked) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    pushReminder: checked,
+                  }))
+                }
+              />
             </div>
 
             <div className="todo-form-actions">

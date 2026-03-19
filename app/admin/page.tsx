@@ -97,7 +97,7 @@ export default function AdminPage() {
               className="block w-full rounded-lg px-4 py-3 text-center transition-colors focus:outline-none focus:ring-2 focus:ring-(--color-accent) focus:ring-offset-2"
               style={{
                 border: '1px solid var(--color-border)',
-                backgroundColor: 'var(--color-bg-offset)',
+                backgroundColor: 'var(--color-bg)',
                 color: 'var(--color-fg)',
               }}
             >

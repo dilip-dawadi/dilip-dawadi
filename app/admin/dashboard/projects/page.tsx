@@ -27,6 +27,8 @@ import {
 } from '@/components/ui/card';
 import { ProjectCardSkeleton } from '@/components/Admin/LoadingSkeletons';
 import { TextAreaWithLabel } from '@/components/ui/TextAreaWithLabel';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
+import { Button } from '@/components/ui/button';
 
 type ProjectFormData = z.infer<typeof projectFormSchema>;
 
@@ -46,6 +48,8 @@ export default function ProjectsAdminPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   const form = useForm<ProjectFormData>({
@@ -128,11 +132,10 @@ export default function ProjectsAdminPage() {
       featured: project.featured,
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast.message('Editing project.');
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
-
     try {
       const res = await fetch(`/api/projects?id=${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete project');
@@ -267,7 +270,7 @@ export default function ProjectsAdminPage() {
                           type="checkbox"
                           checked={field.value}
                           onChange={field.onChange}
-                          className="h-4 w-4 rounded text-blue-600 focus:ring-2"
+                          className="h-4 w-4 rounded accent-(--color-accent) focus:ring-2 focus:ring-(--color-accent)"
                         />
                       </FormControl>
                       <FormLabel className="-mt-1!">Featured project</FormLabel>
@@ -276,34 +279,24 @@ export default function ProjectsAdminPage() {
                 />
 
                 <div className="flex gap-3">
-                  <button
-                    type="submit"
-                    disabled={form.formState.isSubmitting}
-                    className="rounded-md px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 disabled:opacity-50"
-                    style={{ backgroundColor: 'rgb(37, 99, 235)' }}
-                  >
+                  <Button type="submit" disabled={form.formState.isSubmitting} className="px-4">
                     {form.formState.isSubmitting
                       ? 'Saving...'
                       : editingProject
                         ? 'Update Project'
                         : 'Create Project'}
-                  </button>
+                  </Button>
 
                   {editingProject && (
-                    <button
-                      type="button"
-                      onClick={cancelEdit}
-                      className="rounded-md border px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2"
-                    >
+                    <Button type="button" onClick={cancelEdit} variant="outline" className="px-4">
                       Cancel
-                    </button>
+                    </Button>
                   )}
                 </div>
               </form>
             </Form>
           </CardContent>
         </Card>
-
         <div className="space-y-4">
           <h2 className="text-xl font-semibold" style={{ color: 'var(--color-fg-bold)' }}>
             All Projects
@@ -411,26 +404,20 @@ export default function ProjectsAdminPage() {
                   </CardContent>
 
                   <CardFooter className="flex gap-2">
-                    <button
-                      onClick={() => handleEdit(project)}
-                      className="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-                      style={{
-                        border: '1px solid rgb(37, 99, 235)',
-                        backgroundColor: 'rgba(37, 99, 235, 0.2)',
-                      }}
+                    <Button
+                      onClick={() => setProjectToEdit(project)}
+                      variant="outline"
+                      className="flex-1"
                     >
                       Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(project.id)}
-                      className="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-                      style={{
-                        border: '1px solid rgb(220, 38, 38)',
-                        backgroundColor: 'rgba(220, 38, 38, 0.2)',
-                      }}
+                    </Button>
+                    <Button
+                      onClick={() => setProjectToDelete(project.id)}
+                      variant="destructive"
+                      className="flex-1"
                     >
                       Delete
-                    </button>
+                    </Button>
                   </CardFooter>
                 </Card>
               ))}
@@ -438,6 +425,52 @@ export default function ProjectsAdminPage() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(projectToEdit)}
+        setOpen={(open) => {
+          if (!open) {
+            setProjectToEdit(null);
+          }
+        }}
+        title="Edit Project"
+        description="Open this project in edit mode?"
+        confirmText="Edit"
+        cancelText="Cancel"
+        cancelVariant="outline"
+        confirmVariant="default"
+        onConfirm={async () => {
+          if (!projectToEdit) {
+            return;
+          }
+
+          handleEdit(projectToEdit);
+          setProjectToEdit(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(projectToDelete)}
+        setOpen={(open) => {
+          if (!open) {
+            setProjectToDelete(null);
+          }
+        }}
+        title="Delete Project"
+        description="Delete this project?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        cancelVariant="outline"
+        confirmVariant="destructive"
+        onConfirm={async () => {
+          if (!projectToDelete) {
+            return;
+          }
+
+          await handleDelete(projectToDelete);
+          setProjectToDelete(null);
+        }}
+      />
     </AdminLayout>
   );
 }

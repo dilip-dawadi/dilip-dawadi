@@ -199,6 +199,7 @@ export const financeReceivableReminderSchema = z.object({
   ids: z.array(z.string().min(1)).min(1, 'At least one receivable is required'),
   customMessage: z.string().max(1000, 'Message is too long').optional().or(z.literal('')),
   includeWorkDetails: z.boolean().optional(),
+  includeDueDate: z.boolean().optional(),
 });
 
 export type AboutFormData = z.infer<typeof aboutFormSchema>;

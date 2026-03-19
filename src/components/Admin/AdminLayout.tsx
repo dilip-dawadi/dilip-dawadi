@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Toaster } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -97,15 +98,9 @@ export default function AdminLayout({
               <span className="text-sm" style={{ color: 'var(--color-fg)' }}>
                 {session.user.name}
               </span>
-              <button
-                onClick={handleSignOut}
-                className="rounded-md px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                style={{ backgroundColor: 'rgb(220, 38, 38)' }}
-                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgb(185, 28, 28)')}
-                onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgb(220, 38, 38)')}
-              >
+              <Button onClick={handleSignOut} variant="destructive" className="px-4">
                 Sign Out
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -2,7 +2,9 @@
 
 import { signIn, useSession } from 'next-auth/react';
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/ui/searchable-select';
@@ -185,8 +187,10 @@ export default function TodoBoard() {
   const [saving, setSaving] = useState(false);
   const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
   const [form, setForm] = useState<TodoFormState>(() => createDefaultFormState());
-  const [feedback, setFeedback] = useState<string>('');
+  const setFeedback = (_message: string) => {};
   const [pushEnabled, setPushEnabled] = useState(false);
+  const [todoToEdit, setTodoToEdit] = useState<Todo | null>(null);
+  const [todoToDelete, setTodoToDelete] = useState<string | null>(null);
 
   const editingTodo = editingTodoId ? todos.find((todo) => todo.id === editingTodoId) : null;
 
@@ -220,6 +224,7 @@ export default function TodoBoard() {
     } catch (error) {
       console.error(error);
       setFeedback('Unable to load tasks right now.');
+      toast.error('Unable to load tasks right now.');
     } finally {
       setLoading(false);
     }
@@ -244,6 +249,7 @@ export default function TodoBoard() {
   async function enablePushNotifications() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       setFeedback('Push notifications are not supported in this browser.');
+      toast.error('Push notifications are not supported in this browser.');
       return;
     }
 
@@ -252,6 +258,7 @@ export default function TodoBoard() {
       setFeedback(
         'Push is not configured. Add NEXT_PUBLIC_VAPID_PUBLIC_KEY in .env and restart the app.',
       );
+      toast.error('Push is not configured. Add NEXT_PUBLIC_VAPID_PUBLIC_KEY in .env.');
       return;
     }
 
@@ -259,6 +266,7 @@ export default function TodoBoard() {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         setFeedback('Notification permission is required to enable push alerts.');
+        toast.error('Notification permission is required to enable push alerts.');
         return;
       }
 
@@ -285,9 +293,11 @@ export default function TodoBoard() {
 
       setPushEnabled(true);
       setFeedback('Push notifications enabled. You will receive browser reminders.');
+      toast.success('Push notifications enabled.');
     } catch (error) {
       console.error(error);
       setFeedback('Could not enable push notifications.');
+      toast.error('Could not enable push notifications.');
     }
   }
 
@@ -307,6 +317,7 @@ export default function TodoBoard() {
       pushReminder: todo.pushReminder,
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast.message('Editing task.');
   }
 
   function cancelEdit() {
@@ -320,16 +331,19 @@ export default function TodoBoard() {
 
     if (!form.title.trim()) {
       setFeedback('Title is required.');
+      toast.error('Title is required.');
       return;
     }
 
     if ((form.remindDate && !form.remindTime) || (!form.remindDate && form.remindTime)) {
       setFeedback('Please select both reminder date and time.');
+      toast.error('Please select both reminder date and time.');
       return;
     }
 
     if (form.recurrence !== 'once' && (!form.remindDate || !form.remindTime)) {
       setFeedback('Please set reminder date and time for recurring reminders.');
+      toast.error('Please set reminder date and time for recurring reminders.');
       return;
     }
 
@@ -340,6 +354,7 @@ export default function TodoBoard() {
       (!Number.isInteger(repeatEveryDays) || repeatEveryDays < 1 || repeatEveryDays > 365)
     ) {
       setFeedback('Repeat interval must be between 1 and 365 days.');
+      toast.error('Repeat interval must be between 1 and 365 days.');
       return;
     }
 
@@ -383,9 +398,11 @@ export default function TodoBoard() {
       setForm(createDefaultFormState());
       setEditingTodoId(null);
       setFeedback(editingTodo ? 'Task updated.' : 'Task created successfully.');
+      toast.success(editingTodo ? 'Task updated.' : 'Task created successfully.');
     } catch (error) {
       console.error(error);
       setFeedback(editingTodo ? 'Could not update task.' : 'Could not create task.');
+      toast.error(editingTodo ? 'Could not update task.' : 'Could not create task.');
     } finally {
       setSaving(false);
     }
@@ -415,6 +432,7 @@ export default function TodoBoard() {
 
     if (!res.ok) {
       setFeedback('Failed to update task.');
+      toast.error('Failed to update task.');
       return;
     }
 
@@ -423,16 +441,13 @@ export default function TodoBoard() {
   }
 
   async function deleteTodo(id: string) {
-    if (!window.confirm('Delete this task?')) {
-      return;
-    }
-
     const res = await fetch(`/api/todos?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
 
     if (!res.ok) {
       setFeedback('Failed to delete task.');
+      toast.error('Failed to delete task.');
       return;
     }
 
@@ -441,6 +456,8 @@ export default function TodoBoard() {
     if (editingTodoId === id) {
       cancelEdit();
     }
+
+    toast.success('Task deleted.');
   }
 
   if (status === 'loading') {
@@ -651,8 +668,6 @@ export default function TodoBoard() {
         </CardContent>
       </Card>
 
-      {feedback && <p className="todo-feedback">{feedback}</p>}
-
       {loading ? (
         <p className="todo-feedback">Loading tasks...</p>
       ) : (
@@ -688,13 +703,13 @@ export default function TodoBoard() {
                             onChange={(value) => updateTodoStatus(todo, value as TodoStatus)}
                           />
 
-                          <button type="button" onClick={() => startEdit(todo)}>
+                          <button type="button" onClick={() => setTodoToEdit(todo)}>
                             {isEditing ? 'Editing' : 'Edit'}
                           </button>
 
                           <button
                             type="button"
-                            onClick={() => deleteTodo(todo.id)}
+                            onClick={() => setTodoToDelete(todo.id)}
                             className="danger-action"
                           >
                             Delete
@@ -709,6 +724,52 @@ export default function TodoBoard() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(todoToEdit)}
+        setOpen={(open) => {
+          if (!open) {
+            setTodoToEdit(null);
+          }
+        }}
+        title="Edit Task"
+        description="Open this task in edit mode?"
+        confirmText="Edit"
+        cancelText="Cancel"
+        cancelVariant="outline"
+        confirmVariant="default"
+        onConfirm={async () => {
+          if (!todoToEdit) {
+            return;
+          }
+
+          startEdit(todoToEdit);
+          setTodoToEdit(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(todoToDelete)}
+        setOpen={(open) => {
+          if (!open) {
+            setTodoToDelete(null);
+          }
+        }}
+        title="Delete Task"
+        description="Delete this task?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        cancelVariant="outline"
+        confirmVariant="destructive"
+        onConfirm={async () => {
+          if (!todoToDelete) {
+            return;
+          }
+
+          await deleteTodo(todoToDelete);
+          setTodoToDelete(null);
+        }}
+      />
     </section>
   );
 }

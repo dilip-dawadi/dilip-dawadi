@@ -1,7 +1,9 @@
 'use client';
 
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/ui/searchable-select';
@@ -168,10 +170,12 @@ export default function FinanceTracker() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState('');
+  const setFeedback = (_message: string) => {};
   const [notifyEnabled, setNotifyEnabled] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [lastAlertSent, setLastAlertSent] = useState('');
+  const [txToEdit, setTxToEdit] = useState<FinanceTransaction | null>(null);
+  const [txToDelete, setTxToDelete] = useState<string | null>(null);
 
   const netTone = useMemo(() => {
     if (!summary) return 'neutral';
@@ -223,6 +227,7 @@ export default function FinanceTracker() {
     } catch (error) {
       console.error(error);
       setFeedback('Unable to load tracker data right now.');
+      toast.error('Unable to load tracker data right now.');
     } finally {
       setLoading(false);
     }
@@ -254,11 +259,13 @@ export default function FinanceTracker() {
   async function enableFinanceNotifications() {
     if (typeof window === 'undefined' || !('Notification' in window)) {
       setFeedback('This browser does not support notifications.');
+      toast.error('This browser does not support notifications.');
       return;
     }
 
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       setFeedback('Push notifications are not supported in this browser.');
+      toast.error('Push notifications are not supported in this browser.');
       return;
     }
 
@@ -267,6 +274,7 @@ export default function FinanceTracker() {
     if (permission !== 'granted') {
       setNotifyEnabled(false);
       setFeedback('Notification permission was not granted.');
+      toast.error('Notification permission was not granted.');
       return;
     }
 
@@ -275,6 +283,7 @@ export default function FinanceTracker() {
     if (!vapidPublicKey) {
       setNotifyEnabled(true);
       setFeedback('Browser alerts enabled, but push is not configured (missing VAPID key).');
+      toast.message('Browser alerts enabled, but push is not configured (missing VAPID key).');
       return;
     }
 
@@ -302,10 +311,12 @@ export default function FinanceTracker() {
       setNotifyEnabled(true);
       setPushEnabled(true);
       setFeedback('Finance notifications enabled (browser + push).');
+      toast.success('Finance notifications enabled (browser + push).');
     } catch (error) {
       console.error(error);
       setNotifyEnabled(true);
       setFeedback('Browser alerts enabled, but push subscription failed.');
+      toast.error('Browser alerts enabled, but push subscription failed.');
     }
   }
 
@@ -344,6 +355,7 @@ export default function FinanceTracker() {
     });
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast.message('Editing transaction.');
   }
 
   function resetForm() {
@@ -359,12 +371,14 @@ export default function FinanceTracker() {
     const amountCents = toAmountCents(form.amount);
     if (amountCents <= 0) {
       setFeedback('Please add a valid amount.');
+      toast.error('Please add a valid amount.');
       setSaving(false);
       return;
     }
 
     if (!form.happenedAtDate || !form.happenedAtTime) {
       setFeedback('Please select both date and time.');
+      toast.error('Please select both date and time.');
       setSaving(false);
       return;
     }
@@ -394,26 +408,25 @@ export default function FinanceTracker() {
 
       resetForm();
       setFeedback(editingId ? 'Transaction updated.' : 'Transaction added.');
+      toast.success(editingId ? 'Transaction updated.' : 'Transaction added.');
       await loadData();
     } catch (error) {
       console.error(error);
       setFeedback('Could not save transaction.');
+      toast.error('Could not save transaction.');
     } finally {
       setSaving(false);
     }
   }
 
   async function deleteTransaction(id: string) {
-    if (!window.confirm('Delete this transaction?')) {
-      return;
-    }
-
     const res = await fetch(`/api/finance/transactions?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
 
     if (!res.ok) {
       setFeedback('Could not delete transaction.');
+      toast.error('Could not delete transaction.');
       return;
     }
 
@@ -422,6 +435,7 @@ export default function FinanceTracker() {
     }
 
     setFeedback('Transaction deleted.');
+    toast.success('Transaction deleted.');
     await loadData();
   }
 
@@ -450,11 +464,13 @@ export default function FinanceTracker() {
 
     if (!res.ok) {
       setFeedback('Could not save limit settings.');
+      toast.error('Could not save limit settings.');
       return;
     }
 
     setSettings(payload);
     setFeedback('Limit settings saved.');
+    toast.success('Limit settings saved.');
     await loadData();
   }
 
@@ -862,14 +878,14 @@ export default function FinanceTracker() {
                         <button
                           type="button"
                           className="finance-link-btn"
-                          onClick={() => startEdit(tx)}
+                          onClick={() => setTxToEdit(tx)}
                         >
                           Edit
                         </button>
                         <button
                           type="button"
                           className="finance-link-btn finance-link-btn--danger"
-                          onClick={() => deleteTransaction(tx.id)}
+                          onClick={() => setTxToDelete(tx.id)}
                         >
                           Delete
                         </button>
@@ -915,7 +931,51 @@ export default function FinanceTracker() {
         </Card>
       )}
 
-      {feedback && <p className="finance-feedback">{feedback}</p>}
+      <ConfirmDialog
+        open={Boolean(txToEdit)}
+        setOpen={(open) => {
+          if (!open) {
+            setTxToEdit(null);
+          }
+        }}
+        title="Edit Transaction"
+        description="Open this transaction in edit mode?"
+        confirmText="Edit"
+        cancelText="Cancel"
+        cancelVariant="outline"
+        confirmVariant="default"
+        onConfirm={async () => {
+          if (!txToEdit) {
+            return;
+          }
+
+          startEdit(txToEdit);
+          setTxToEdit(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(txToDelete)}
+        setOpen={(open) => {
+          if (!open) {
+            setTxToDelete(null);
+          }
+        }}
+        title="Delete Transaction"
+        description="Delete this transaction?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        cancelVariant="outline"
+        confirmVariant="destructive"
+        onConfirm={async () => {
+          if (!txToDelete) {
+            return;
+          }
+
+          await deleteTransaction(txToDelete);
+          setTxToDelete(null);
+        }}
+      />
     </section>
   );
 }

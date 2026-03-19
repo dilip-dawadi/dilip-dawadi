@@ -4,6 +4,7 @@ import { signIn } from 'next-auth/react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 
 export default function AdminPage() {
   const { data: session, status } = useSession();
@@ -84,18 +85,16 @@ export default function AdminPage() {
           </div>
 
           <div className="mt-6 flex flex-col gap-4">
-            <button
+            <Button
               onClick={handleSignOut}
-              className="w-full rounded-lg px-4 py-3 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-              style={{ backgroundColor: 'rgb(220, 38, 38)' }}
-              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgb(185, 28, 28)')}
-              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgb(220, 38, 38)')}
+              variant="destructive"
+              className="w-full h-12 rounded-lg"
             >
               Sign Out
-            </button>
+            </Button>
             <a
               href="/"
-              className="block w-full rounded-lg px-4 py-3 text-center transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="block w-full rounded-lg px-4 py-3 text-center transition-colors focus:outline-none focus:ring-2 focus:ring-(--color-accent) focus:ring-offset-2"
               style={{
                 border: '1px solid var(--color-border)',
                 backgroundColor: 'var(--color-bg-offset)',
@@ -132,14 +131,10 @@ export default function AdminPage() {
         </div>
 
         <div className="mt-8">
-          <button
+          <Button
             onClick={handleGoogleSignIn}
-            className="flex w-full items-center justify-center gap-3 rounded-lg px-4 py-3 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            style={{
-              border: '1px solid var(--color-border)',
-              backgroundColor: 'var(--color-bg-offset)',
-              color: 'var(--color-fg)',
-            }}
+            variant="outline"
+            className="flex h-12 w-full items-center justify-center gap-3 rounded-lg"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -160,7 +155,7 @@ export default function AdminPage() {
               />
             </svg>
             <span className="font-medium">Continue with Google</span>
-          </button>
+          </Button>
 
           <p className="mt-4 text-center text-xs" style={{ color: 'var(--color-fg-light)' }}>
             By signing in, you agree to our{' '}

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 interface FinanceSummaryResponse {
   totals: {
@@ -236,15 +237,9 @@ export default function AdminDashboard() {
                   {session?.user?.name}
                 </span>
               </div>
-              <button
-                onClick={handleSignOut}
-                className="rounded-md px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                style={{ backgroundColor: 'rgb(220, 38, 38)' }}
-                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgb(185, 28, 28)')}
-                onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgb(220, 38, 38)')}
-              >
+              <Button onClick={handleSignOut} variant="destructive" className="px-4">
                 Sign Out
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -271,18 +266,14 @@ export default function AdminDashboard() {
             <h3 className="text-base font-semibold" style={{ color: 'var(--color-fg-bold)' }}>
               Advanced Overview
             </h3>
-            <button
+            <Button
               type="button"
               onClick={() => void loadOverview()}
-              className="rounded-md px-3 py-1.5 text-sm"
-              style={{
-                border: '1px solid var(--color-border)',
-                backgroundColor: 'var(--color-bg)',
-                color: 'var(--color-fg)',
-              }}
+              variant="outline"
+              className="h-9 px-3 py-1.5 text-sm"
             >
               Refresh
-            </button>
+            </Button>
           </div>
 
           {overviewError ? (
@@ -320,13 +311,13 @@ export default function AdminDashboard() {
                   style={{ backgroundColor: 'var(--color-bg)' }}
                 >
                   <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    Pending Money
+                    Today Work Income
                   </p>
-                  <p className="m-0 text-lg leading-tight font-semibold text-red-700">
-                    {toCurrency(overview.pendingMoneyCents)}
+                  <p className="m-0 text-lg leading-tight font-semibold text-emerald-700">
+                    {toCurrency(overview.todayWorkIncomeCents)}
                   </p>
                   <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    Total unpaid receivables
+                    {minutesToHoursLabel(overview.todayWorkedMinutes)} logged today
                   </p>
                 </div>
 
@@ -335,13 +326,13 @@ export default function AdminDashboard() {
                   style={{ backgroundColor: 'var(--color-bg)' }}
                 >
                   <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    Today Work Income
+                    Pending Money
                   </p>
-                  <p className="m-0 text-lg leading-tight font-semibold text-emerald-700">
-                    {toCurrency(overview.todayWorkIncomeCents)}
+                  <p className="m-0 text-lg leading-tight font-semibold text-red-700">
+                    {toCurrency(overview.pendingMoneyCents)}
                   </p>
                   <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    {minutesToHoursLabel(overview.todayWorkedMinutes)} logged today
+                    Total unpaid receivables
                   </p>
                 </div>
 

@@ -51,8 +51,8 @@
 }
 
 .finance-tab-btn--active {
-  background: #0f766e;
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-white);
 }
 
 .finance-secondary-btn {
@@ -199,9 +199,13 @@
   border-radius: 10px;
   padding: 0.6rem 0.8rem;
   cursor: pointer;
-  background: #2563eb;
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-white);
   font-weight: 700;
+}
+
+.finance-actions button:hover {
+  background: var(--color-accent-hover);
 }
 
 .finance-transactions-card {

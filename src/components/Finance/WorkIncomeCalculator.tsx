@@ -1,7 +1,9 @@
 'use client';
 
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/ui/searchable-select';
@@ -86,6 +88,9 @@ const defaultWorkLogFormState: WorkLogFormState = {
   note: '',
 };
 
+const DEFAULT_RECEIVABLE_NOTE =
+  'Pending amount for this item. Update with your own context (friend, personal work, or general).';
+
 function localDateInputValue(date = new Date()): string {
   const offsetMs = date.getTimezoneOffset() * 60_000;
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 10);
@@ -107,7 +112,7 @@ function createDefaultReceivableFormState(): ReceivableFormState {
     title: '',
     amount: '',
     dueDate: localDateInputValue(),
-    note: '',
+    note: DEFAULT_RECEIVABLE_NOTE,
     includeWorkDetails: false,
     useHoursRate: false,
     hours: '0',
@@ -155,11 +160,15 @@ function minutesToHoursLabel(minutes: number): string {
 
 type WorkIncomeTab = 'today-income' | 'pending-payment';
 
+const REMINDER_TEMPLATE_STORAGE_KEY = 'work-income:reminder-message-template';
+const DEFAULT_REMINDER_TEMPLATE =
+  'Hi, this is a friendly reminder to clear the pending amount. Please confirm once sent.';
+
 export default function WorkIncomeCalculator() {
   const [activeTab, setActiveTab] = useState<WorkIncomeTab>('today-income');
   const [month, setMonth] = useState(monthKey());
   const [loading, setLoading] = useState(true);
-  const [feedback, setFeedback] = useState('');
+  const setFeedback = (_message: string) => {};
   const [todos, setTodos] = useState<PlannerTodoItem[]>([]);
   const [workLogs, setWorkLogs] = useState<WorkLog[]>([]);
   const [receivables, setReceivables] = useState<Receivable[]>([]);
@@ -172,14 +181,41 @@ export default function WorkIncomeCalculator() {
   );
   const [savingWorkLog, setSavingWorkLog] = useState(false);
   const [savingReceivable, setSavingReceivable] = useState(false);
+  const [editingReceivableId, setEditingReceivableId] = useState<string | null>(null);
   const [selectedPendingIds, setSelectedPendingIds] = useState<string[]>([]);
   const [sendingReminder, setSendingReminder] = useState(false);
   const [markingPaid, setMarkingPaid] = useState(false);
   const [reminderMessage, setReminderMessage] = useState('');
+  const [reminderMessageTemplate, setReminderMessageTemplate] = useState(DEFAULT_REMINDER_TEMPLATE);
+  const [includeDueDateInReminder, setIncludeDueDateInReminder] = useState(false);
+  const [showReminderConfirm, setShowReminderConfirm] = useState(false);
+  const [workLogToDelete, setWorkLogToDelete] = useState<string | null>(null);
+  const [receivableToEdit, setReceivableToEdit] = useState<Receivable | null>(null);
+  const [receivableToDelete, setReceivableToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     void loadData();
   }, [month]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const savedReminderTemplate = window.localStorage.getItem(REMINDER_TEMPLATE_STORAGE_KEY);
+
+    if (savedReminderTemplate) {
+      setReminderMessageTemplate(savedReminderTemplate);
+    }
+  }, []);
+
+  function saveReminderMessageTemplate() {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(REMINDER_TEMPLATE_STORAGE_KEY, reminderMessageTemplate);
+    }
+
+    toast.success('Reminder message template saved.');
+  }
 
   async function loadData() {
     setLoading(true);
@@ -211,6 +247,7 @@ export default function WorkIncomeCalculator() {
     } catch (error) {
       console.error(error);
       setFeedback('Unable to load work income data right now.');
+      toast.error('Unable to load work income data right now.');
     } finally {
       setLoading(false);
     }
@@ -228,12 +265,14 @@ export default function WorkIncomeCalculator() {
 
     if (totalMinutes <= 0) {
       setFeedback('Please add worked hours/minutes.');
+      toast.error('Please add worked hours/minutes.');
       setSavingWorkLog(false);
       return;
     }
 
     if (hourlyRateCents <= 0) {
       setFeedback('Please add a valid hourly rate.');
+      toast.error('Please add a valid hourly rate.');
       setSavingWorkLog(false);
       return;
     }
@@ -260,30 +299,30 @@ export default function WorkIncomeCalculator() {
         hourlyRate: prev.hourlyRate,
       }));
       setFeedback('Work log added and income synced to finance.');
+      toast.success('Work log added and income synced to finance.');
       await loadData();
     } catch (error) {
       console.error(error);
       setFeedback('Could not save work log.');
+      toast.error('Could not save work log.');
     } finally {
       setSavingWorkLog(false);
     }
   }
 
   async function deleteWorkLog(id: string) {
-    if (!window.confirm('Delete this work log? The linked income entry will also be removed.')) {
-      return;
-    }
-
     const res = await fetch(`/api/finance/work-logs?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
 
     if (!res.ok) {
       setFeedback('Could not delete work log.');
+      toast.error('Could not delete work log.');
       return;
     }
 
     setFeedback('Work log removed.');
+    toast.success('Work log removed.');
     await loadData();
   }
 
@@ -302,33 +341,39 @@ export default function WorkIncomeCalculator() {
 
     if (!receivableForm.payerName.trim()) {
       setFeedback('Payer name is required.');
+      toast.error('Payer name is required.');
       setSavingReceivable(false);
       return;
     }
 
     if (!receivableForm.title.trim()) {
       setFeedback('Receivable title is required.');
+      toast.error('Receivable title is required.');
       setSavingReceivable(false);
       return;
     }
 
     if (amountCents <= 0) {
       setFeedback('Please provide a valid amount.');
+      toast.error('Please provide a valid amount.');
       setSavingReceivable(false);
       return;
     }
 
     if (receivableForm.useHoursRate && (totalMinutes <= 0 || hourlyRateCents <= 0)) {
       setFeedback('Please provide valid hours/minutes and rate for work-based receivable.');
+      toast.error('Please provide valid hours/minutes and rate for work-based receivable.');
       setSavingReceivable(false);
       return;
     }
 
     try {
+      const isEditing = Boolean(editingReceivableId);
       const res = await fetch('/api/finance/receivables', {
-        method: 'POST',
+        method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id: editingReceivableId || undefined,
           todoId: receivableForm.todoId || undefined,
           workLogId: receivableForm.workLogId || undefined,
           payerName: receivableForm.payerName,
@@ -348,15 +393,48 @@ export default function WorkIncomeCalculator() {
         throw new Error('Failed to save receivable');
       }
 
+      setEditingReceivableId(null);
       setReceivableForm(createDefaultReceivableFormState());
-      setFeedback('Pending receivable added.');
+      setFeedback(isEditing ? 'Pending receivable updated.' : 'Pending receivable added.');
+      toast.success(isEditing ? 'Pending receivable updated.' : 'Pending receivable added.');
       await loadData();
     } catch (error) {
       console.error(error);
       setFeedback('Could not save receivable.');
+      toast.error('Could not save receivable.');
     } finally {
       setSavingReceivable(false);
     }
+  }
+
+  function startEditingReceivable(item: Receivable) {
+    const amount = (item.amountCents / 100).toFixed(2);
+    const dueDate = item.dueAt ? localDateInputValue(new Date(item.dueAt)) : localDateInputValue();
+    const totalMinutes = item.minutesWorked || 0;
+
+    setEditingReceivableId(item.id);
+    setReceivableForm({
+      todoId: item.todoId || '',
+      workLogId: item.workLogId || '',
+      payerName: item.payerName,
+      payerEmail: item.payerEmail || '',
+      title: item.title,
+      amount,
+      dueDate,
+      note: item.note || '',
+      includeWorkDetails: item.includeWorkDetails,
+      useHoursRate: Boolean(item.minutesWorked && item.hourlyRateCents),
+      hours: String(Math.floor(totalMinutes / 60)),
+      minutes: String(totalMinutes % 60),
+      hourlyRate: item.hourlyRateCents ? (item.hourlyRateCents / 100).toFixed(2) : '',
+    });
+    setActiveTab('pending-payment');
+    toast.message('Editing pending receivable.');
+  }
+
+  function cancelEditingReceivable() {
+    setEditingReceivableId(null);
+    setReceivableForm(createDefaultReceivableFormState());
   }
 
   async function markReceivablesPaid(ids: string[]) {
@@ -384,6 +462,7 @@ export default function WorkIncomeCalculator() {
     } catch (error) {
       console.error(error);
       setFeedback('Could not update paid status.');
+      toast.error('Could not update paid status.');
     } finally {
       setMarkingPaid(false);
     }
@@ -391,6 +470,7 @@ export default function WorkIncomeCalculator() {
 
   async function sendReminders(ids: string[]) {
     if (ids.length === 0) {
+      toast.error('Select at least one pending receivable first.');
       return;
     }
 
@@ -404,7 +484,7 @@ export default function WorkIncomeCalculator() {
         body: JSON.stringify({
           ids,
           customMessage: reminderMessage,
-          includeWorkDetails: receivableForm.includeWorkDetails,
+          includeDueDate: includeDueDateInReminder,
         }),
       });
 
@@ -414,31 +494,51 @@ export default function WorkIncomeCalculator() {
 
       const data = (await res.json()) as { sent: number };
       setFeedback(`Reminder email sent to ${data.sent} contact(s).`);
+      if (data.sent > 0) {
+        toast.success(`Reminder email sent to ${data.sent} contact(s).`);
+      } else {
+        toast.error('No reminder sent. Selected items may not have payer email.');
+      }
       await loadData();
     } catch (error) {
       console.error(error);
       setFeedback('Could not send reminder emails.');
+      toast.error('Could not send reminder emails.');
     } finally {
       setSendingReminder(false);
     }
   }
 
-  async function deleteReceivable(id: string) {
-    if (!window.confirm('Delete this receivable?')) {
-      return;
-    }
+  function reminderPreviewText(item: Receivable): string {
+    const includeWorkDetails = item.includeWorkDetails;
+    const detailsLine =
+      includeWorkDetails && item.minutesWorked && item.hourlyRateCents
+        ? `\nWork hours: ${(item.minutesWorked / 60).toFixed(2)}h\nRate: ${toCurrency(item.hourlyRateCents)} / hour`
+        : '';
 
+    const dueLine =
+      includeDueDateInReminder && item.dueAt
+        ? `\nDue date: ${new Date(item.dueAt).toLocaleDateString()}`
+        : '';
+    const customMessage = reminderMessage.trim() ? `\n\n${reminderMessage.trim()}` : '';
+
+    return `Hello ${item.payerName},\n\nThis is a payment reminder for "${item.title}".\nAmount due: ${toCurrency(item.amountCents)}${dueLine}${detailsLine}${customMessage}\n\nPlease let me know once payment is completed.\nThank you.`;
+  }
+
+  async function deleteReceivable(id: string) {
     const res = await fetch(`/api/finance/receivables?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
 
     if (!res.ok) {
       setFeedback('Could not delete receivable.');
+      toast.error('Could not delete receivable.');
       return;
     }
 
     setSelectedPendingIds((current) => current.filter((item) => item !== id));
     setFeedback('Receivable deleted.');
+    toast.success('Receivable deleted.');
     await loadData();
   }
 
@@ -451,6 +551,21 @@ export default function WorkIncomeCalculator() {
   const pendingReceivables = useMemo(
     () => receivables.filter((item) => item.status === 'pending'),
     [receivables],
+  );
+
+  const reminderPreviewItems = useMemo(
+    () => pendingReceivables.filter((item) => selectedPendingIds.includes(item.id)),
+    [pendingReceivables, selectedPendingIds],
+  );
+
+  const reminderPreviewEmailItems = useMemo(
+    () => reminderPreviewItems.filter((item) => Boolean(item.payerEmail)),
+    [reminderPreviewItems],
+  );
+
+  const reminderPreviewSkipped = useMemo(
+    () => reminderPreviewItems.filter((item) => !item.payerEmail),
+    [reminderPreviewItems],
   );
 
   const paidReceivables = useMemo(
@@ -694,7 +809,7 @@ export default function WorkIncomeCalculator() {
                           <button
                             type="button"
                             className="finance-link-btn finance-link-btn--danger"
-                            onClick={() => deleteWorkLog(log.id)}
+                            onClick={() => setWorkLogToDelete(log.id)}
                           >
                             Delete
                           </button>
@@ -898,14 +1013,26 @@ export default function WorkIncomeCalculator() {
                   onChange={(event) =>
                     setReceivableForm((prev) => ({ ...prev, note: event.target.value }))
                   }
-                  placeholder="Remaining payment for sprint support"
                 />
               </div>
 
               <div className="finance-actions">
                 <button type="submit" disabled={savingReceivable}>
-                  {savingReceivable ? 'Saving...' : 'Add Pending Payment'}
+                  {savingReceivable
+                    ? 'Saving...'
+                    : editingReceivableId
+                      ? 'Update Pending Payment'
+                      : 'Add Pending Payment'}
                 </button>
+                {editingReceivableId ? (
+                  <button
+                    type="button"
+                    className="finance-secondary-btn"
+                    onClick={cancelEditingReceivable}
+                  >
+                    Cancel Edit
+                  </button>
+                ) : null}
               </div>
             </form>
           </CardContent>
@@ -929,23 +1056,60 @@ export default function WorkIncomeCalculator() {
                   rows={2}
                   value={reminderMessage}
                   onChange={(event) => setReminderMessage(event.target.value)}
-                  placeholder="Please clear the pending amount today."
                 />
               </div>
+
+              <div>
+                <Label htmlFor="receivable-reminder-template">Reminder Message Template</Label>
+                <Textarea
+                  id="receivable-reminder-template"
+                  rows={2}
+                  value={reminderMessageTemplate}
+                  onChange={(event) => setReminderMessageTemplate(event.target.value)}
+                />
+                <div className="finance-actions">
+                  <button
+                    type="button"
+                    className="finance-secondary-btn"
+                    onClick={() => {
+                      setReminderMessage(reminderMessageTemplate);
+                      toast.success('Reminder template applied.');
+                    }}
+                  >
+                    Apply Template To Message
+                  </button>
+                  <button
+                    type="button"
+                    className="finance-secondary-btn"
+                    onClick={saveReminderMessageTemplate}
+                  >
+                    Save Template
+                  </button>
+                </div>
+              </div>
+
+              <label className="finance-toggle">
+                <input
+                  type="checkbox"
+                  checked={includeDueDateInReminder}
+                  onChange={(event) => setIncludeDueDateInReminder(event.target.checked)}
+                />
+                Include due date in reminder email
+              </label>
 
               <div className="finance-actions">
                 <button
                   type="button"
-                  disabled={markingPaid || selectedPendingIds.length === 0}
-                  onClick={() => void markReceivablesPaid(selectedPendingIds)}
-                >
-                  {markingPaid ? 'Updating...' : 'Mark Selected Paid'}
-                </button>
-                <button
-                  type="button"
                   className="finance-secondary-btn"
-                  disabled={sendingReminder || selectedPendingIds.length === 0}
-                  onClick={() => void sendReminders(selectedPendingIds)}
+                  disabled={sendingReminder}
+                  onClick={() => {
+                    if (selectedPendingIds.length === 0) {
+                      toast.error('Select at least one pending receivable first.');
+                      return;
+                    }
+
+                    setShowReminderConfirm(true);
+                  }}
                 >
                   {sendingReminder ? 'Sending...' : 'Send Email Reminder'}
                 </button>
@@ -995,6 +1159,13 @@ export default function WorkIncomeCalculator() {
                               <button
                                 type="button"
                                 className="finance-link-btn"
+                                onClick={() => setReceivableToEdit(item)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="finance-link-btn"
                                 onClick={() => void markReceivablesPaid([item.id])}
                               >
                                 Mark Paid
@@ -1009,7 +1180,7 @@ export default function WorkIncomeCalculator() {
                               <button
                                 type="button"
                                 className="finance-link-btn finance-link-btn--danger"
-                                onClick={() => void deleteReceivable(item.id)}
+                                onClick={() => setReceivableToDelete(item.id)}
                               >
                                 Delete
                               </button>
@@ -1062,7 +1233,162 @@ export default function WorkIncomeCalculator() {
         </Card>
       ) : null}
 
-      {feedback && <p className="finance-feedback">{feedback}</p>}
+      <ConfirmDialog
+        open={showReminderConfirm}
+        setOpen={setShowReminderConfirm}
+        title="Confirm Reminder Email"
+        description="Review recipients and message preview before sending."
+        confirmText={`Send ${reminderPreviewEmailItems.length} Reminder${
+          reminderPreviewEmailItems.length === 1 ? '' : 's'
+        }`}
+        cancelText="Cancel"
+        cancelVariant="outline"
+        confirmVariant="default"
+        isLoading={sendingReminder}
+        onConfirm={async () => {
+          if (selectedPendingIds.length === 0) {
+            toast.error('Select at least one pending receivable first.');
+            return;
+          }
+
+          if (reminderPreviewEmailItems.length === 0) {
+            toast.error('No selected receivable has an email address.');
+            return;
+          }
+
+          await sendReminders(selectedPendingIds);
+          setShowReminderConfirm(false);
+        }}
+      >
+        <div className="finance-form" style={{ gap: '0.75rem' }}>
+          <div>
+            <strong>Recipients</strong>
+            {reminderPreviewEmailItems.length === 0 ? (
+              <p className="finance-muted">No selected receivables have payer email.</p>
+            ) : (
+              <div className="finance-transaction-list" style={{ marginTop: '0.45rem' }}>
+                {reminderPreviewEmailItems.map((item) => (
+                  <div key={item.id} className="finance-transaction">
+                    <div>
+                      <h3>{item.payerName}</h3>
+                      <small>{item.payerEmail}</small>
+                    </div>
+                    <div className="finance-transaction-side">
+                      <strong>{toCurrency(item.amountCents)}</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {reminderPreviewSkipped.length > 0 ? (
+              <p className="finance-muted" style={{ marginTop: '0.45rem' }}>
+                Skipped (no email):{' '}
+                {reminderPreviewSkipped.map((item) => item.payerName).join(', ')}
+              </p>
+            ) : null}
+          </div>
+
+          {reminderPreviewEmailItems.length > 0 ? (
+            <div>
+              <strong>Message Preview</strong>
+              <div className="finance-transaction-list" style={{ marginTop: '0.45rem' }}>
+                {reminderPreviewEmailItems.map((item) => (
+                  <div key={`preview-${item.id}`}>
+                    <small style={{ color: 'var(--color-fg-light)' }}>
+                      To: {item.payerName} ({item.payerEmail})
+                    </small>
+                    <pre
+                      style={{
+                        marginTop: '0.35rem',
+                        whiteSpace: 'pre-wrap',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: '10px',
+                        padding: '0.75rem',
+                        backgroundColor: 'var(--color-bg-alt)',
+                        color: 'var(--color-fg)',
+                        fontFamily: 'inherit',
+                        fontSize: '0.9rem',
+                      }}
+                    >
+                      {reminderPreviewText(item)}
+                    </pre>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={Boolean(workLogToDelete)}
+        setOpen={(open) => {
+          if (!open) {
+            setWorkLogToDelete(null);
+          }
+        }}
+        title="Delete Work Log"
+        description="Delete this work log? The linked income entry will also be removed."
+        confirmText="Delete"
+        cancelText="Cancel"
+        cancelVariant="outline"
+        confirmVariant="destructive"
+        onConfirm={async () => {
+          if (!workLogToDelete) {
+            return;
+          }
+
+          await deleteWorkLog(workLogToDelete);
+          setWorkLogToDelete(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(receivableToEdit)}
+        setOpen={(open) => {
+          if (!open) {
+            setReceivableToEdit(null);
+          }
+        }}
+        title="Edit Pending Receivable"
+        description="Open this receivable in edit mode?"
+        confirmText="Edit"
+        cancelText="Cancel"
+        cancelVariant="outline"
+        confirmVariant="default"
+        onConfirm={async () => {
+          if (!receivableToEdit) {
+            return;
+          }
+
+          startEditingReceivable(receivableToEdit);
+          setReceivableToEdit(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(receivableToDelete)}
+        setOpen={(open) => {
+          if (!open) {
+            setReceivableToDelete(null);
+          }
+        }}
+        title="Delete Pending Receivable"
+        description="Delete this receivable?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        cancelVariant="outline"
+        confirmVariant="destructive"
+        onConfirm={async () => {
+          if (!receivableToDelete) {
+            return;
+          }
+
+          await deleteReceivable(receivableToDelete);
+          setReceivableToDelete(null);
+        }}
+      />
     </section>
   );
 }

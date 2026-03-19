@@ -1,7 +1,7 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { financeReceivables } from '@/db/schema';
+import { financeReceivables, financeWorkLogs } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { sendEmail } from '@/lib/gmail';
 import { financeReceivableReminderSchema } from '@/lib/validations';
@@ -36,6 +36,28 @@ export async function POST(request: Request) {
         ),
       );
 
+    const workLogIds = receivables
+      .map((item) => item.workLogId)
+      .filter((id): id is string => Boolean(id));
+
+    const workLogs = workLogIds.length
+      ? await db
+          .select({
+            id: financeWorkLogs.id,
+            minutesWorked: financeWorkLogs.minutesWorked,
+            hourlyRateCents: financeWorkLogs.hourlyRateCents,
+          })
+          .from(financeWorkLogs)
+          .where(
+            and(
+              eq(financeWorkLogs.userId, session.user.id),
+              inArray(financeWorkLogs.id, workLogIds),
+            ),
+          )
+      : [];
+
+    const workLogMap = new Map(workLogs.map((log) => [log.id, log]));
+
     let sent = 0;
     const now = new Date();
 
@@ -45,13 +67,18 @@ export async function POST(request: Request) {
       }
 
       const includeWorkDetails = parsed.includeWorkDetails ?? item.includeWorkDetails;
+      const includeDueDate = parsed.includeDueDate ?? true;
+      const linkedWorkLog = item.workLogId ? workLogMap.get(item.workLogId) : null;
+      const minutesWorked = item.minutesWorked ?? linkedWorkLog?.minutesWorked ?? null;
+      const hourlyRateCents = item.hourlyRateCents ?? linkedWorkLog?.hourlyRateCents ?? null;
 
       const detailsLine =
-        includeWorkDetails && item.minutesWorked && item.hourlyRateCents
-          ? `\nWork hours: ${hoursLabel(item.minutesWorked)}h\nRate: $${toCurrency(item.hourlyRateCents)} / hour`
+        includeWorkDetails && minutesWorked && hourlyRateCents
+          ? `\nWork hours: ${hoursLabel(minutesWorked)}h\nRate: $${toCurrency(hourlyRateCents)} / hour`
           : '';
 
-      const dueLine = item.dueAt ? `\nDue date: ${item.dueAt.toLocaleDateString()}` : '';
+      const dueLine =
+        includeDueDate && item.dueAt ? `\nDue date: ${item.dueAt.toLocaleDateString()}` : '';
       const customMessage = parsed.customMessage ? `\n\n${parsed.customMessage.trim()}` : '';
 
       const text = `Hello ${item.payerName},\n\nThis is a payment reminder for "${item.title}".\nAmount due: $${toCurrency(item.amountCents)}${dueLine}${detailsLine}${customMessage}\n\nPlease let me know once payment is completed.\nThank you.`;
@@ -61,10 +88,10 @@ export async function POST(request: Request) {
           <p>Hello ${item.payerName},</p>
           <p>This is a payment reminder for <strong>${item.title}</strong>.</p>
           <p><strong>Amount due:</strong> $${toCurrency(item.amountCents)}</p>
-          ${item.dueAt ? `<p><strong>Due date:</strong> ${item.dueAt.toLocaleDateString()}</p>` : ''}
+          ${includeDueDate && item.dueAt ? `<p><strong>Due date:</strong> ${item.dueAt.toLocaleDateString()}</p>` : ''}
           ${
-            includeWorkDetails && item.minutesWorked && item.hourlyRateCents
-              ? `<p><strong>Work hours:</strong> ${hoursLabel(item.minutesWorked)}h<br/><strong>Rate:</strong> $${toCurrency(item.hourlyRateCents)} / hour</p>`
+            includeWorkDetails && minutesWorked && hourlyRateCents
+              ? `<p><strong>Work hours:</strong> ${hoursLabel(minutesWorked)}h<br/><strong>Rate:</strong> $${toCurrency(hourlyRateCents)} / hour</p>`
               : ''
           }
           ${item.note ? `<p><strong>Notes:</strong> ${item.note}</p>` : ''}

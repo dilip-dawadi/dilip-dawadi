@@ -7,6 +7,7 @@ import AdminLayout from '@/components/Admin/AdminLayout';
 import { aboutFormSchema, type AboutFormData } from '@/lib/validations';
 import { toast } from 'sonner';
 import { Form } from '@/components/ui/form';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TextAreaWithLabel } from '@/components/ui/TextAreaWithLabel';
 
@@ -93,14 +94,9 @@ export default function AdminAboutPage() {
                   Edit your about page content using Markdown
                 </p>
               </div>
-              <button
-                type="submit"
-                disabled={form.formState.isSubmitting}
-                className="rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
-                style={{ backgroundColor: 'var(--color-accent)' }}
-              >
+              <Button type="submit" disabled={form.formState.isSubmitting} className="px-4">
                 {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
-              </button>
+              </Button>
             </div>
 
             <TextAreaWithLabel

@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/card';
 import { BlogCardSkeleton } from '@/components/Admin/LoadingSkeletons';
 import { TextAreaWithLabel } from '@/components/ui/TextAreaWithLabel';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
+import { Button } from '@/components/ui/button';
 
 type BlogPostFormData = z.infer<typeof blogPostFormSchema>;
 
@@ -38,6 +40,8 @@ export default function WritingAdminPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
+  const [postToEdit, setPostToEdit] = useState<BlogPost | null>(null);
+  const [postToDelete, setPostToDelete] = useState<number | null>(null);
 
   const form = useForm<BlogPostFormData>({
     resolver: zodResolver(blogPostFormSchema),
@@ -103,11 +107,10 @@ export default function WritingAdminPage() {
       published: post.published,
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast.message('Editing post.');
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this post?')) return;
-
     try {
       const res = await fetch(`/api/blog?id=${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete post');
@@ -193,7 +196,7 @@ export default function WritingAdminPage() {
                           type="checkbox"
                           checked={field.value}
                           onChange={field.onChange}
-                          className="h-4 w-4 rounded text-blue-600 focus:ring-2"
+                          className="h-4 w-4 rounded accent-(--color-accent) focus:ring-2 focus:ring-(--color-accent)"
                         />
                       </FormControl>
                       <FormLabel className="-mt-1!">Publish post</FormLabel>
@@ -202,27 +205,18 @@ export default function WritingAdminPage() {
                 />
 
                 <div className="flex gap-3">
-                  <button
-                    type="submit"
-                    disabled={form.formState.isSubmitting}
-                    className="rounded-md px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 disabled:opacity-50"
-                    style={{ backgroundColor: 'rgb(37, 99, 235)' }}
-                  >
+                  <Button type="submit" disabled={form.formState.isSubmitting} className="px-4">
                     {form.formState.isSubmitting
                       ? 'Saving...'
                       : editingPost
                         ? 'Update Post'
                         : 'Create Post'}
-                  </button>
+                  </Button>
 
                   {editingPost && (
-                    <button
-                      type="button"
-                      onClick={cancelEdit}
-                      className="rounded-md border px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2"
-                    >
+                    <Button type="button" onClick={cancelEdit} variant="outline" className="px-4">
                       Cancel
-                    </button>
+                    </Button>
                   )}
                 </div>
               </form>
@@ -278,20 +272,20 @@ export default function WritingAdminPage() {
                   </CardContent>
 
                   <CardFooter className="flex gap-2">
-                    <button
-                      onClick={() => handleEdit(post)}
-                      className="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-                      style={{ border: '1px solid rgb(37, 99, 235)', color: 'rgb(37, 99, 235)' }}
+                    <Button
+                      onClick={() => setPostToEdit(post)}
+                      variant="outline"
+                      className="flex-1"
                     >
                       Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(post.id)}
-                      className="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-                      style={{ border: '1px solid rgb(220, 38, 38)', color: 'rgb(220, 38, 38)' }}
+                    </Button>
+                    <Button
+                      onClick={() => setPostToDelete(post.id)}
+                      variant="destructive"
+                      className="flex-1"
                     >
                       Delete
-                    </button>
+                    </Button>
                   </CardFooter>
                 </Card>
               ))}
@@ -299,6 +293,52 @@ export default function WritingAdminPage() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(postToEdit)}
+        setOpen={(open) => {
+          if (!open) {
+            setPostToEdit(null);
+          }
+        }}
+        title="Edit Post"
+        description="Open this post in edit mode?"
+        confirmText="Edit"
+        cancelText="Cancel"
+        cancelVariant="outline"
+        confirmVariant="default"
+        onConfirm={async () => {
+          if (!postToEdit) {
+            return;
+          }
+
+          handleEdit(postToEdit);
+          setPostToEdit(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={postToDelete !== null}
+        setOpen={(open) => {
+          if (!open) {
+            setPostToDelete(null);
+          }
+        }}
+        title="Delete Post"
+        description="Delete this post?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        cancelVariant="outline"
+        confirmVariant="destructive"
+        onConfirm={async () => {
+          if (postToDelete === null) {
+            return;
+          }
+
+          await handleDelete(postToDelete);
+          setPostToDelete(null);
+        }}
+      />
     </AdminLayout>
   );
 }

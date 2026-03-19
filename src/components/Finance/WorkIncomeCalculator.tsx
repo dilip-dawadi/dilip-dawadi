@@ -2,14 +2,15 @@
 
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckboxWithLabel } from '@/components/ui/checkbox-with-label';
 import ConfirmDialog from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
-import { SearchableSelect } from '@/components/ui/searchable-select';
 import { SearchableSelectWithLabel } from '@/components/ui/searchable-select-with-label';
 import { TextAreaWithLabel } from '@/components/ui/TextAreaWithLabel';
 import { InputWithLabel } from '@/components/ui/input-with-label';
+import { DatePickerWithLabel } from '@/components/ui/datepicker';
 
 interface PlannerTodoItem {
   id: string;
@@ -667,24 +668,26 @@ export default function WorkIncomeCalculator() {
       </header>
 
       <div className="finance-tabs" role="tablist" aria-label="Work income sections">
-        <button
+        <Button
           type="button"
           role="tab"
           aria-selected={activeTab === 'today-income'}
           className={`finance-tab-btn ${activeTab === 'today-income' ? 'finance-tab-btn--active' : ''}`}
           onClick={() => setActiveTab('today-income')}
+          variant="ghost"
         >
           Today Income
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           role="tab"
           aria-selected={activeTab === 'pending-payment'}
           className={`finance-tab-btn ${activeTab === 'pending-payment' ? 'finance-tab-btn--active' : ''}`}
           onClick={() => setActiveTab('pending-payment')}
+          variant="ghost"
         >
           Pending Payment
-        </button>
+        </Button>
       </div>
 
       {activeTab === 'today-income' ? (
@@ -698,7 +701,7 @@ export default function WorkIncomeCalculator() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form className="finance-form" onSubmit={saveWorkLog}>
+                <form className="finance-form finance-form--spacious" onSubmit={saveWorkLog}>
                   <div className="finance-form-row ">
                     <div>
                       <InputWithLabel
@@ -754,22 +757,21 @@ export default function WorkIncomeCalculator() {
                       />
                     </div>
                     <div>
-                      <InputWithLabel
+                      <DatePickerWithLabel
                         fieldTitle="Work Date"
-                        nameInSchema="work-date"
-                        type="date"
+                        id="work-date"
                         value={workLogForm.workDate}
-                        onChange={(event) =>
+                        onChange={(value) =>
                           setWorkLogForm((prev) => ({
                             ...prev,
-                            workDate: event.target.value,
+                            workDate: value,
                           }))
                         }
                       />
                     </div>
                   </div>
 
-                  <div style={{ marginTop: '1rem' }}>
+                  <div>
                     <SearchableSelectWithLabel
                       fieldTitle="Linked Planner Task"
                       nameInSchema="work-linked-todo"
@@ -780,7 +782,7 @@ export default function WorkIncomeCalculator() {
                     />
                   </div>
 
-                  <div style={{ marginTop: '1rem' }}>
+                  <div>
                     <TextAreaWithLabel
                       fieldTitle="Work Note"
                       nameInSchema="work-note"
@@ -807,9 +809,9 @@ export default function WorkIncomeCalculator() {
                   </div>
 
                   <div className="finance-actions">
-                    <button type="submit" disabled={savingWorkLog}>
+                    <Button type="submit" disabled={savingWorkLog}>
                       {savingWorkLog ? 'Saving...' : 'Add Work Log'}
-                    </button>
+                    </Button>
                   </div>
                 </form>
               </CardContent>
@@ -850,13 +852,14 @@ export default function WorkIncomeCalculator() {
 
                         <div className="finance-transaction-side">
                           <strong>+ {toCurrency(incomeCents)}</strong>
-                          <button
+                          <Button
                             type="button"
                             className="finance-link-btn finance-link-btn--danger"
                             onClick={() => setWorkLogToDelete(log.id)}
+                            variant="destructive"
                           >
                             Delete
-                          </button>
+                          </Button>
                         </div>
                       </article>
                     );
@@ -877,8 +880,8 @@ export default function WorkIncomeCalculator() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="finance-form" onSubmit={saveReceivable}>
-              <div className="finance-form-row ">
+            <form className="finance-form finance-form--spacious" onSubmit={saveReceivable}>
+              <div className="finance-form-row">
                 <div>
                   <InputWithLabel
                     fieldTitle="Person / Company"
@@ -937,7 +940,7 @@ export default function WorkIncomeCalculator() {
 
               <CheckboxWithLabel
                 id="receivable-use-hours"
-                className="finance-toggle mt-2 mb-4"
+                className="finance-toggle"
                 label="Calculate total from work hours and hourly rate"
                 checked={receivableForm.useHoursRate}
                 onCheckedChange={(checked) =>
@@ -994,18 +997,13 @@ export default function WorkIncomeCalculator() {
                 </div>
               )}
 
-              <div className="finance-form-row mb-4">
-                <div>
-                  <InputWithLabel
-                    fieldTitle="Due Date"
-                    nameInSchema="receivable-due-date"
-                    type="date"
-                    value={receivableForm.dueDate}
-                    onChange={(event) =>
-                      setReceivableForm((prev) => ({ ...prev, dueDate: event.target.value }))
-                    }
-                  />
-                </div>
+              <div className="finance-form-row">
+                <DatePickerWithLabel
+                  fieldTitle="Due Date"
+                  id="receivable-due-date"
+                  value={receivableForm.dueDate}
+                  onChange={(value) => setReceivableForm((prev) => ({ ...prev, dueDate: value }))}
+                />
               </div>
 
               <div className="finance-form-row ">
@@ -1035,7 +1033,7 @@ export default function WorkIncomeCalculator() {
 
               <CheckboxWithLabel
                 id="receivable-include-work-details"
-                className="finance-toggle mt-2 mb-4"
+                className="finance-toggle"
                 label="Include work hours and rate details in email reminder"
                 checked={receivableForm.includeWorkDetails}
                 onCheckedChange={(checked) =>
@@ -1059,21 +1057,22 @@ export default function WorkIncomeCalculator() {
               </div>
 
               <div className="finance-actions">
-                <button type="submit" disabled={savingReceivable}>
+                <Button type="submit" disabled={savingReceivable}>
                   {savingReceivable
                     ? 'Saving...'
                     : editingReceivableId
                       ? 'Update Pending Payment'
                       : 'Add Pending Payment'}
-                </button>
+                </Button>
                 {editingReceivableId ? (
-                  <button
+                  <Button
                     type="button"
                     className="finance-secondary-btn"
                     onClick={cancelEditingReceivable}
+                    variant="outline"
                   >
                     Cancel Edit
-                  </button>
+                  </Button>
                 ) : null}
               </div>
             </form>
@@ -1090,7 +1089,7 @@ export default function WorkIncomeCalculator() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="finance-form" style={{ marginBottom: '0.8rem' }}>
+            <div className="finance-form" style={{ marginBottom: '1.5rem' }}>
               <div>
                 <TextAreaWithLabel
                   fieldTitle="Reminder Message (optional)"
@@ -1101,7 +1100,7 @@ export default function WorkIncomeCalculator() {
                 />
               </div>
 
-              <div>
+              <div className="space-y-2 mt-2">
                 <TextAreaWithLabel
                   fieldTitle="Reminder Message Template"
                   nameInSchema="receivable-reminder-template"
@@ -1110,23 +1109,25 @@ export default function WorkIncomeCalculator() {
                   onChange={(event) => setReminderMessageTemplate(event.target.value)}
                 />
                 <div className="finance-actions">
-                  <button
+                  <Button
                     type="button"
                     className="finance-secondary-btn"
                     onClick={() => {
                       setReminderMessage(reminderMessageTemplate);
                       toast.success('Reminder template applied.');
                     }}
+                    variant="outline"
                   >
                     Apply Template To Message
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     className="finance-secondary-btn"
                     onClick={saveReminderMessageTemplate}
+                    variant="outline"
                   >
                     Save Template
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -1139,7 +1140,7 @@ export default function WorkIncomeCalculator() {
               />
 
               <div className="finance-actions">
-                <button
+                <Button
                   type="button"
                   className="finance-secondary-btn"
                   disabled={sendingReminder}
@@ -1151,9 +1152,10 @@ export default function WorkIncomeCalculator() {
 
                     setShowReminderConfirm(true);
                   }}
+                  variant="outline"
                 >
                   {sendingReminder ? 'Sending...' : 'Send Email Reminder'}
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -1196,34 +1198,38 @@ export default function WorkIncomeCalculator() {
                             />
                             <strong>+ {toCurrency(item.amountCents)}</strong>
                             <div className="finance-inline-actions">
-                              <button
+                              <Button
                                 type="button"
-                                className="finance-link-btn"
+                                className="finance-link-btn admin-btn-edit"
                                 onClick={() => setReceivableToEdit(item)}
+                                variant="outline"
                               >
                                 Edit
-                              </button>
-                              <button
+                              </Button>
+                              <Button
                                 type="button"
                                 className="finance-link-btn"
                                 onClick={() => void markReceivablesPaid([item.id])}
+                                variant="outline"
                               >
                                 Mark Paid
-                              </button>
-                              <button
+                              </Button>
+                              <Button
                                 type="button"
                                 className="finance-link-btn"
                                 onClick={() => void sendReminders([item.id])}
+                                variant="outline"
                               >
                                 Email
-                              </button>
-                              <button
+                              </Button>
+                              <Button
                                 type="button"
                                 className="finance-link-btn finance-link-btn--danger"
                                 onClick={() => setReceivableToDelete(item.id)}
+                                variant="destructive"
                               >
                                 Delete
-                              </button>
+                              </Button>
                             </div>
                           </div>
                         </article>
@@ -1265,13 +1271,14 @@ export default function WorkIncomeCalculator() {
                     <div className="finance-transaction-side">
                       <strong>+ {toCurrency(item.amountCents)}</strong>
                       <div className="finance-inline-actions">
-                        <button
+                        <Button
                           type="button"
                           className="finance-link-btn"
                           onClick={() => void markReceivableUnpaid(item.id)}
+                          variant="ghost"
                         >
                           Mark Unpaid
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </article>

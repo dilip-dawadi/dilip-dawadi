@@ -204,7 +204,7 @@ export default function WritingAdminPage() {
                   )}
                 />
 
-                <div className="flex gap-3">
+                <div className="admin-dashboard-actions flex gap-3">
                   <Button type="submit" disabled={form.formState.isSubmitting} className="px-4">
                     {form.formState.isSubmitting
                       ? 'Saving...'
@@ -271,11 +271,11 @@ export default function WritingAdminPage() {
                     </p>
                   </CardContent>
 
-                  <CardFooter className="flex gap-2">
+                  <CardFooter className="admin-dashboard-actions flex gap-2">
                     <Button
                       onClick={() => setPostToEdit(post)}
                       variant="outline"
-                      className="flex-1"
+                      className="admin-btn-edit flex-1"
                     >
                       Edit
                     </Button>

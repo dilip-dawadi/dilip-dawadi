@@ -70,6 +70,10 @@
   gap: 1rem;
 }
 
+.todo-form--spacious {
+  gap: 1.5rem;
+}
+
 .todo-form-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -145,6 +149,12 @@
   gap: 0.5rem;
 }
 
+.todo-schedule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
 .todo-reminder-grid input[type='date'],
 .todo-reminder-grid input[type='time'] {
   display: block;
@@ -162,10 +172,28 @@
   height: 100%;
 }
 
+@media (min-width: 1024px) {
+  .todo-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.2rem;
+  }
+
+  .todo-schedule-block {
+    grid-column: 1 / -1;
+  }
+
+  .todo-reminder-grid {
+    gap: 1rem;
+  }
+
+  .todo-repeat-row {
+    gap: 1.1rem;
+  }
+}
+
 .todo-options-row {
-  margin-top: 0.2rem;
   display: flex;
-  gap: 1rem;
+  gap: 1.5rem;
   flex-wrap: wrap;
 }
 
@@ -174,42 +202,14 @@
   align-items: center;
   gap: 0.45rem;
   padding: 0.4rem 0.65rem;
-  border-radius: 999px;
   border: 1px solid var(--color-border);
-  background: var(--color-bg-offset);
+  background: var(--color-bg);
 }
 
 .todo-form-actions {
   margin-top: 0.25rem;
   display: flex;
   gap: 0.75rem;
-}
-
-.todo-form-actions button,
-.todo-card-actions button {
-  border: none;
-  border-radius: 10px;
-  background: var(--color-accent);
-  color: var(--color-white);
-  font-weight: 700;
-  padding: 0.6rem 0.8rem;
-  cursor: pointer;
-}
-
-.todo-form-actions button:hover,
-.todo-card-actions button:hover {
-  background: var(--color-accent-hover);
-}
-
-.todo-form-actions .secondary-action {
-  background: var(--color-bg-offset);
-  color: var(--color-fg);
-  border: 1px solid var(--color-border);
-}
-
-.todo-card-actions .danger-action {
-  background: color-mix(in srgb, #dc2626 88%, var(--color-bg-alt));
-  color: var(--color-white);
 }
 
 .todo-columns {

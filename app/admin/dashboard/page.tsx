@@ -208,7 +208,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
+    <div className="admin-shell min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
       <nav
         className="shadow-sm"
         style={{
@@ -218,12 +218,13 @@ export default function AdminDashboard() {
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 justify-between">
-            <div className="flex items-center">
+            <div className="flex items-center gap-4">
+              <span className="text-sm select-none opacity-0">← Back</span>
               <div className="text-xl font-bold" style={{ color: 'var(--color-fg-bold)' }}>
                 Dashboard
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="admin-dashboard-actions flex items-center gap-4">
               <div className="flex items-center gap-4">
                 {session?.user?.image && (
                   <img
@@ -270,7 +271,7 @@ export default function AdminDashboard() {
               type="button"
               onClick={() => void loadOverview()}
               variant="outline"
-              className="h-9 px-3 py-1.5 text-sm"
+              className="px-4"
             >
               Refresh
             </Button>

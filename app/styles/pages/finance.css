@@ -145,10 +145,18 @@
   gap: 0.8rem;
 }
 
+.finance-form--spacious {
+  gap: 1.5rem;
+}
+
 .finance-form > div {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+}
+
+.finance-form--spacious > div {
+  gap: 0.7rem;
 }
 
 .finance-form-row {
@@ -157,11 +165,20 @@
   gap: 0.65rem;
 }
 
+.finance-form--spacious .finance-form-row {
+  gap: 1.25rem;
+}
+
 .finance-recurring-row {
   display: grid;
   grid-template-columns: 1fr 180px;
   gap: 0.5rem;
   align-items: center;
+}
+
+.finance-form--spacious .finance-recurring-row {
+  gap: 1rem;
+  align-items: end;
 }
 
 .finance-recurring-row label,
@@ -192,20 +209,6 @@
 .finance-actions {
   display: flex;
   gap: 0.5rem;
-}
-
-.finance-actions button {
-  border: none;
-  border-radius: 10px;
-  padding: 0.6rem 0.8rem;
-  cursor: pointer;
-  background: var(--color-accent);
-  color: var(--color-white);
-  font-weight: 700;
-}
-
-.finance-actions button:hover {
-  background: var(--color-accent-hover);
 }
 
 .finance-transactions-card {
@@ -266,7 +269,7 @@
 .finance-inline-actions {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: 0.5rem;
 }
 
 .finance-receivable-group {
@@ -285,18 +288,12 @@
 }
 
 .finance-link-btn {
-  border: 1px solid var(--color-border);
-  border-radius: 2px;
-  background: var(--color-bg-alt);
-  color: var(--color-fg);
   padding: 0.25rem 0.5rem;
   font-size: 0.78rem;
-  cursor: pointer;
 }
 
 .finance-link-btn--danger {
-  border-color: rgba(220, 38, 38, 0.35);
-  color: #b91c1c;
+  font-weight: 700;
 }
 
 .finance-category-bars {

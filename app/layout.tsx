@@ -1,12 +1,14 @@
 import type { Metadata } from 'next';
-import { Raleway, Source_Sans_3 } from 'next/font/google';
+import { Raleway, Source_Sans_3, Geist } from 'next/font/google';
 import Script from 'next/script';
 import Navigation from '@/components/Template/Navigation';
 import ScrollToTop from '@/components/Template/ScrollToTop';
 import { getExperienceText } from '@/lib/experience';
-import { AUTHOR_NAME, SITE_URL, TWITTER_HANDLE } from '@/lib/utils';
+import { AUTHOR_NAME, SITE_URL, TWITTER_HANDLE, cn } from '@/lib/utils';
 import { SessionProvider } from '../src/components/SessionProvider';
 import './tailwind.css';
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const sourceSans = Source_Sans_3({
   weight: ['400', '700'],
@@ -97,7 +99,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${sourceSans.variable} ${raleway.variable}`}
+      className={cn(sourceSans.variable, raleway.variable, "font-sans", geist.variable)}
       suppressHydrationWarning
     >
       <head>

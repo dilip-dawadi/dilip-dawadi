@@ -4,14 +4,15 @@ import { signIn, useSession } from 'next-auth/react';
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { CheckboxWithLabel } from '@/components/ui/checkbox-with-label';
 import ConfirmDialog from '@/components/ui/confirm-dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { SearchableSelectWithLabel } from '@/components/ui/searchable-select-with-label';
 import { TextAreaWithLabel } from '@/components/ui/TextAreaWithLabel';
 import { InputWithLabel } from '@/components/ui/input-with-label';
+import { DatePickerWithLabel, TimePickerWithLabel } from '@/components/ui/datepicker';
 
 type Priority = 'low' | 'medium' | 'high';
 type TodoStatus = 'todo' | 'in-progress' | 'done';
@@ -472,12 +473,12 @@ export default function TodoBoard() {
       <section className="todo-auth-card">
         <h2>Sign in required</h2>
         <p>Sign in to create tasks and receive reminder emails or push notifications.</p>
-        <button
+        <Button
           type="button"
           onClick={() => signIn('google', { callbackUrl: '/admin/dashboard/todo' })}
         >
           Sign in with Google
-        </button>
+        </Button>
       </section>
     );
   }
@@ -499,9 +500,9 @@ export default function TodoBoard() {
           </p>
         </div>
 
-        <button type="button" className="todo-push-btn" onClick={enablePushNotifications}>
+        <Button type="button" className="todo-push-btn" onClick={enablePushNotifications}>
           {pushEnabled ? 'Push Enabled' : 'Enable Push Alerts'}
-        </button>
+        </Button>
       </header>
 
       <Card className="todo-form-card">
@@ -512,7 +513,7 @@ export default function TodoBoard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="todo-form" onSubmit={saveTodo}>
+          <form className="todo-form todo-form--spacious" onSubmit={saveTodo}>
             <div className="todo-form-grid">
               <div>
                 <InputWithLabel
@@ -541,38 +542,36 @@ export default function TodoBoard() {
                 />
               </div>
 
-              <div>
-                <Label>Start schedule</Label>
+              <div className="todo-schedule-block">
                 <div className="todo-reminder-grid">
-                  <Input
+                  <DatePickerWithLabel
+                    fieldTitle="Start schedule"
                     id="todo-remind-date"
-                    type="date"
-                    className="block w-full min-w-0 max-w-full py-0"
                     value={form.remindDate}
-                    onChange={(event) =>
+                    onChange={(value) =>
                       setForm((prev) => ({
                         ...prev,
-                        remindDate: event.target.value,
+                        remindDate: value,
                       }))
                     }
                   />
-                  <Input
+                  <TimePickerWithLabel
+                    fieldTitle="Time"
                     id="todo-remind-time"
-                    type="time"
-                    className="block w-full min-w-0 max-w-full py-0"
                     value={form.remindTime}
-                    onChange={(event) =>
+                    onChange={(value) =>
                       setForm((prev) => ({
                         ...prev,
-                        remindTime: event.target.value,
+                        remindTime: value,
                       }))
                     }
+                    className="block w-full min-w-0 max-w-full py-0"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="todo-form-grid todo-form-grid--schedule">
+            <div className="todo-form-grid todo-form-grid--schedule todo-repeat-row">
               <div>
                 <SearchableSelectWithLabel
                   fieldTitle="Repeat"
@@ -626,11 +625,11 @@ export default function TodoBoard() {
                 maxLength={2000}
               />
             </div>
-
             <div className="todo-options-row">
               <CheckboxWithLabel
                 id="todo-email-reminder"
                 label="Email reminder"
+                className="w-full"
                 checked={form.emailReminder}
                 onCheckedChange={(checked) =>
                   setForm((prev) => ({
@@ -643,6 +642,7 @@ export default function TodoBoard() {
               <CheckboxWithLabel
                 id="todo-push-reminder"
                 label="Push reminder"
+                className="w-full"
                 checked={form.pushReminder}
                 onCheckedChange={(checked) =>
                   setForm((prev) => ({
@@ -654,13 +654,13 @@ export default function TodoBoard() {
             </div>
 
             <div className="todo-form-actions">
-              <button type="submit" disabled={saving}>
+              <Button type="submit" disabled={saving}>
                 {saving ? 'Saving...' : editingTodo ? 'Update Task' : 'Add Task'}
-              </button>
+              </Button>
               {editingTodo && (
-                <button type="button" onClick={cancelEdit} className="secondary-action">
+                <Button type="button" onClick={cancelEdit} variant="outline">
                   Cancel
-                </button>
+                </Button>
               )}
             </div>
           </form>
@@ -702,17 +702,22 @@ export default function TodoBoard() {
                             onChange={(value) => updateTodoStatus(todo, value as TodoStatus)}
                           />
 
-                          <button type="button" onClick={() => setTodoToEdit(todo)}>
+                          <Button
+                            type="button"
+                            onClick={() => setTodoToEdit(todo)}
+                            variant="outline"
+                            className="admin-btn-edit"
+                          >
                             {isEditing ? 'Editing' : 'Edit'}
-                          </button>
+                          </Button>
 
-                          <button
+                          <Button
                             type="button"
                             onClick={() => setTodoToDelete(todo.id)}
-                            className="danger-action"
+                            variant="destructive"
                           >
                             Delete
-                          </button>
+                          </Button>
                         </div>
                       </article>
                     );
@@ -737,6 +742,7 @@ export default function TodoBoard() {
         cancelText="Cancel"
         cancelVariant="outline"
         confirmVariant="default"
+        className="rounded-xs border border-(--color-border) bg-bg shadow-xl"
         onConfirm={async () => {
           if (!todoToEdit) {
             return;
@@ -760,6 +766,7 @@ export default function TodoBoard() {
         cancelText="Cancel"
         cancelVariant="outline"
         confirmVariant="destructive"
+        className="rounded-xs border border-(--color-border) bg-bg shadow-xl"
         onConfirm={async () => {
           if (!todoToDelete) {
             return;

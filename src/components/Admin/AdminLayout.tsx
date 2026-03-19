@@ -63,7 +63,7 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
+    <div className="admin-shell min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
       <Toaster position="bottom-center" richColors />
       <nav
         className="shadow-sm"

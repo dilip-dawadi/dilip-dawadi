@@ -36,6 +36,7 @@
 @import './styles/pages/resume.css';
 @import './styles/pages/writing.css';
 @import './styles/pages/content.css';
+@import './styles/pages/admin.css';
 @import './styles/pages/auth-error.css';
 @import './styles/pages/error.css';
 @import './styles/pages/todo.css';
@@ -46,3 +47,4 @@
 
 /* Theme Overrides */
 @import './styles/dark-mode.css';
+@import 'shadcn/tailwind.css';

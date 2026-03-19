@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckboxWithLabel } from '@/components/ui/checkbox-with-label';
 import ConfirmDialog from '@/components/ui/confirm-dialog';
@@ -11,6 +12,7 @@ import { SearchableSelectWithLabel } from '@/components/ui/searchable-select-wit
 import { Skeleton } from '@/components/ui/skeleton';
 import { TextAreaWithLabel } from '@/components/ui/TextAreaWithLabel';
 import { InputWithLabel } from '@/components/ui/input-with-label';
+import { DatePickerWithLabel, TimePickerWithLabel } from '@/components/ui/datepicker';
 
 type TransactionType = 'income' | 'expense';
 
@@ -498,13 +500,14 @@ export default function FinanceTracker() {
             className="finance-month-input"
           />
 
-          <button
+          <Button
             type="button"
             className="finance-secondary-btn"
             onClick={enableFinanceNotifications}
+            variant="outline"
           >
             {pushEnabled ? 'Push Ready' : 'Enable Finance Alerts'}
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -562,7 +565,7 @@ export default function FinanceTracker() {
             <CardDescription>Track expense and income with recurring support.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="finance-form" onSubmit={saveTransaction}>
+            <form className="finance-form finance-form--spacious" onSubmit={saveTransaction}>
               <div className="finance-form-row">
                 <div>
                   <SearchableSelectWithLabel
@@ -604,29 +607,27 @@ export default function FinanceTracker() {
 
               <div className="finance-form-row">
                 <div>
-                  <InputWithLabel
+                  <DatePickerWithLabel
                     fieldTitle="Date"
-                    nameInSchema="finance-date"
-                    type="date"
+                    id="finance-date"
                     value={form.happenedAtDate}
-                    onChange={(event) =>
+                    onChange={(value) =>
                       setForm((prev) => ({
                         ...prev,
-                        happenedAtDate: event.target.value,
+                        happenedAtDate: value,
                       }))
                     }
                   />
                 </div>
                 <div>
-                  <InputWithLabel
+                  <TimePickerWithLabel
                     fieldTitle="Time"
-                    nameInSchema="finance-time"
-                    type="time"
+                    id="finance-time"
                     value={form.happenedAtTime}
-                    onChange={(event) =>
+                    onChange={(value) =>
                       setForm((prev) => ({
                         ...prev,
-                        happenedAtTime: event.target.value,
+                        happenedAtTime: value,
                       }))
                     }
                   />
@@ -673,13 +674,18 @@ export default function FinanceTracker() {
               </div>
 
               <div className="finance-actions">
-                <button type="submit" disabled={saving}>
+                <Button type="submit" disabled={saving}>
                   {saving ? 'Saving...' : editingId ? 'Update Transaction' : 'Add Transaction'}
-                </button>
+                </Button>
                 {editingId && (
-                  <button type="button" className="finance-secondary-btn" onClick={resetForm}>
+                  <Button
+                    type="button"
+                    className="finance-secondary-btn"
+                    onClick={resetForm}
+                    variant="outline"
+                  >
                     Cancel
-                  </button>
+                  </Button>
                 )}
               </div>
             </form>
@@ -694,7 +700,7 @@ export default function FinanceTracker() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="finance-form" onSubmit={saveSettings}>
+            <form className="finance-form finance-form--spacious" onSubmit={saveSettings}>
               <div className="finance-form-row">
                 <div>
                   <InputWithLabel
@@ -810,7 +816,7 @@ export default function FinanceTracker() {
               </div>
 
               <div className="finance-actions">
-                <button type="submit">Save Limits</button>
+                <Button type="submit">Save Limits</Button>
               </div>
             </form>
           </CardContent>
@@ -873,20 +879,22 @@ export default function FinanceTracker() {
                         {tx.type === 'income' ? '+' : '-'} {toCurrency(tx.amountCents)}
                       </strong>
                       <div className="finance-inline-actions">
-                        <button
+                        <Button
                           type="button"
-                          className="finance-link-btn"
+                          className="finance-link-btn admin-btn-edit"
                           onClick={() => setTxToEdit(tx)}
+                          variant="outline"
                         >
                           Edit
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
                           className="finance-link-btn finance-link-btn--danger"
                           onClick={() => setTxToDelete(tx.id)}
+                          variant="destructive"
                         >
                           Delete
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </article>

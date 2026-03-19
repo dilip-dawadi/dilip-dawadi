@@ -31,7 +31,7 @@ export default function AdminPage() {
   if (status === 'loading') {
     return (
       <div
-        className="flex min-h-screen items-center justify-center"
+        className="admin-shell flex min-h-screen items-center justify-center"
         style={{ backgroundColor: 'var(--color-bg)' }}
       >
         <div className="text-lg" style={{ color: 'var(--color-fg)' }}>
@@ -84,12 +84,8 @@ export default function AdminPage() {
             </p>
           </div>
 
-          <div className="mt-6 flex flex-col gap-4">
-            <Button
-              onClick={handleSignOut}
-              variant="destructive"
-              className="w-full h-12 rounded-lg"
-            >
+          <div className="admin-auth-actions mt-6 flex flex-col gap-4">
+            <Button onClick={handleSignOut} variant="destructive" className="w-full">
               Sign Out
             </Button>
             <a
@@ -111,7 +107,7 @@ export default function AdminPage() {
 
   return (
     <div
-      className="flex min-h-screen items-center justify-center"
+      className="admin-shell flex min-h-screen items-center justify-center"
       style={{ backgroundColor: 'var(--color-bg)' }}
     >
       <div
@@ -134,7 +130,7 @@ export default function AdminPage() {
           <Button
             onClick={handleGoogleSignIn}
             variant="outline"
-            className="flex h-12 w-full items-center justify-center gap-3 rounded-lg"
+            className="flex w-full items-center justify-center gap-3"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path

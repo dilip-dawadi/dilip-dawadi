@@ -1,9 +1,10 @@
 import * as React from 'react';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import type { IconProp } from '@fortawesome/fontawesome-svg-core';
-import { faCheck, faMagnifyingGlass, faSort } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { cn } from '@/lib/utils';
+import { ChevronDownIcon } from 'lucide-react';
 
 export interface SearchableSelectOption {
   id: string;
@@ -78,7 +79,7 @@ export function SearchableSelect({
           <span className={selectedOption ? 'text-foreground' : 'text-muted-foreground'}>
             {selectedOption ? selectedOption.label : placeholder}
           </span>
-          <FontAwesomeIcon icon={faSort as IconProp} className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-70" />
         </button>
       </PopoverPrimitive.Trigger>
 

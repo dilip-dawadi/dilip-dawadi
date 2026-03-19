@@ -11,7 +11,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   default:
     'bg-[var(--color-accent)] text-[var(--color-white)] hover:bg-[var(--color-accent-hover)] shadow-sm',
   destructive:
-    'bg-[color-mix(in_srgb,#dc2626_88%,var(--color-bg-alt))] text-[var(--color-white)] hover:bg-[color-mix(in_srgb,#b91c1c_88%,var(--color-bg-alt))] shadow-sm',
+    'border border-[color-mix(in_srgb,#dc2626_60%,var(--color-border))] bg-[var(--color-bg)] text-[color-mix(in_srgb,#dc2626_72%,var(--color-fg))] hover:bg-[color-mix(in_srgb,#dc2626_12%,var(--color-bg))] shadow-sm',
   outline:
     'border border-[var(--color-border)] bg-[var(--color-bg-offset)] text-[var(--color-fg)] hover:bg-[var(--color-bg-alt)]',
   secondary:
@@ -29,7 +29,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       ref={ref}
       type={type}
       className={cn(
-        'inline-flex h-10 items-center justify-center rounded-xs px-4 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-light focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+        'inline-flex h-10 items-center justify-center rounded-xs px-4 text-[0.82rem] font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-light focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
         variantClasses[variant],
         className,
       )}

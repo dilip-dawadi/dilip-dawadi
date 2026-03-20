@@ -543,7 +543,7 @@ export default function TodoBoard() {
               </div>
 
               <div className="todo-schedule-block">
-                <div className="todo-reminder-grid">
+                <div className="todo-reminder-grid space-y-3">
                   <DatePickerWithLabel
                     fieldTitle="Start schedule"
                     id="todo-remind-date"
@@ -706,6 +706,7 @@ export default function TodoBoard() {
                             type="button"
                             onClick={() => setTodoToEdit(todo)}
                             variant="outline"
+                            size="sm"
                             className="admin-btn-edit"
                           >
                             {isEditing ? 'Editing' : 'Edit'}
@@ -715,6 +716,7 @@ export default function TodoBoard() {
                             type="button"
                             onClick={() => setTodoToDelete(todo.id)}
                             variant="destructive"
+                            size="sm"
                           >
                             Delete
                           </Button>

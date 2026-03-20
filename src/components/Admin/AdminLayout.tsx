@@ -11,12 +11,14 @@ interface AdminLayoutProps {
   children: React.ReactNode;
   title: string;
   backLink?: string;
+  showBackButton?: boolean;
 }
 
 export default function AdminLayout({
   children,
   title,
   backLink = '/admin/dashboard',
+  showBackButton = true,
 }: AdminLayoutProps) {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -73,20 +75,32 @@ export default function AdminLayout({
         }}
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                href={backLink}
-                className="text-sm transition-colors"
-                style={{ color: 'var(--color-fg-light)' }}
+          <div className="flex min-h-16 items-center justify-between gap-3 py-2 sm:gap-4 sm:py-0">
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
+              {showBackButton ? (
+                <Link
+                  href={backLink}
+                  className="shrink-0 whitespace-nowrap text-sm transition-colors"
+                  style={{ color: 'var(--color-fg-light)' }}
+                >
+                  ← Back
+                </Link>
+              ) : (
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none shrink-0 select-none whitespace-nowrap text-sm opacity-0"
+                >
+                  ← Back
+                </span>
+              )}
+              <div
+                className="truncate text-lg font-bold sm:text-xl"
+                style={{ color: 'var(--color-fg-bold)' }}
               >
-                ← Back
-              </Link>
-              <div className="text-xl font-bold" style={{ color: 'var(--color-fg-bold)' }}>
                 {title}
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-4">
               {session.user.image && (
                 <img
                   src={session.user.image}
@@ -95,10 +109,17 @@ export default function AdminLayout({
                   style={{ borderColor: 'var(--color-border)' }}
                 />
               )}
-              <span className="text-sm" style={{ color: 'var(--color-fg)' }}>
+              <span
+                className="hidden whitespace-nowrap text-sm sm:inline"
+                style={{ color: 'var(--color-fg)' }}
+              >
                 {session.user.name}
               </span>
-              <Button onClick={handleSignOut} variant="destructive" className="px-4">
+              <Button
+                onClick={handleSignOut}
+                variant="destructive"
+                className="whitespace-nowrap px-3 sm:px-4"
+              >
                 Sign Out
               </Button>
             </div>

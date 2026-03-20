@@ -857,6 +857,7 @@ export default function WorkIncomeCalculator() {
                             className="finance-link-btn finance-link-btn--danger"
                             onClick={() => setWorkLogToDelete(log.id)}
                             variant="destructive"
+                            size="sm"
                           >
                             Delete
                           </Button>
@@ -1203,6 +1204,7 @@ export default function WorkIncomeCalculator() {
                                 className="finance-link-btn admin-btn-edit"
                                 onClick={() => setReceivableToEdit(item)}
                                 variant="outline"
+                                size="sm"
                               >
                                 Edit
                               </Button>
@@ -1211,6 +1213,7 @@ export default function WorkIncomeCalculator() {
                                 className="finance-link-btn"
                                 onClick={() => void markReceivablesPaid([item.id])}
                                 variant="outline"
+                                size="sm"
                               >
                                 Mark Paid
                               </Button>
@@ -1219,6 +1222,7 @@ export default function WorkIncomeCalculator() {
                                 className="finance-link-btn"
                                 onClick={() => void sendReminders([item.id])}
                                 variant="outline"
+                                size="sm"
                               >
                                 Email
                               </Button>
@@ -1227,6 +1231,7 @@ export default function WorkIncomeCalculator() {
                                 className="finance-link-btn finance-link-btn--danger"
                                 onClick={() => setReceivableToDelete(item.id)}
                                 variant="destructive"
+                                size="sm"
                               >
                                 Delete
                               </Button>
@@ -1276,6 +1281,7 @@ export default function WorkIncomeCalculator() {
                           className="finance-link-btn"
                           onClick={() => void markReceivableUnpaid(item.id)}
                           variant="ghost"
+                          size="sm"
                         >
                           Mark Unpaid
                         </Button>

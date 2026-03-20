@@ -1,26 +1,3 @@
-.admin-shell button.inline-flex {
-  min-height: 42px;
-  border-radius: 2px;
-  padding-inline: 1rem;
-  font-weight: 700;
-}
-
-.admin-shell .finance-actions button.inline-flex,
-.admin-shell .todo-form-actions button.inline-flex,
-.admin-shell .card-footer button.inline-flex,
-.admin-shell .admin-auth-actions button.inline-flex,
-.admin-shell .admin-dashboard-actions button.inline-flex {
-  min-width: 90px;
-}
-
-.admin-shell .finance-inline-actions button.inline-flex,
-.admin-shell .todo-card-actions button.inline-flex {
-  min-height: 42px;
-  min-width: 120px;
-  padding-inline: 0.85rem;
-  font-size: 0.88rem;
-}
-
 .admin-shell .finance-tab-btn {
   min-height: 38px;
   min-width: 140px;
@@ -57,9 +34,7 @@
 @media (max-width: 980px) {
   .admin-shell .finance-actions button.inline-flex,
   .admin-shell .todo-form-actions button.inline-flex,
-  .admin-shell .card-footer button.inline-flex,
-  .admin-shell .admin-auth-actions button.inline-flex,
-  .admin-shell .admin-dashboard-actions button.inline-flex {
+  .admin-shell .admin-auth-actions button.inline-flex {
     width: 100%;
     min-width: 0;
   }

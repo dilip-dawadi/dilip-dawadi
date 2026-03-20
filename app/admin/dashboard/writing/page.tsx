@@ -275,6 +275,7 @@ export default function WritingAdminPage() {
                     <Button
                       onClick={() => setPostToEdit(post)}
                       variant="outline"
+                      size="sm"
                       className="admin-btn-edit flex-1"
                     >
                       Edit
@@ -282,6 +283,7 @@ export default function WritingAdminPage() {
                     <Button
                       onClick={() => setPostToDelete(post.id)}
                       variant="destructive"
+                      size="sm"
                       className="flex-1"
                     >
                       Delete

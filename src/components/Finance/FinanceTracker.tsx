@@ -502,7 +502,7 @@ export default function FinanceTracker() {
 
           <Button
             type="button"
-            className="finance-secondary-btn"
+            className="finance-secondary-btn h-12!"
             onClick={enableFinanceNotifications}
             variant="outline"
           >
@@ -884,6 +884,7 @@ export default function FinanceTracker() {
                           className="finance-link-btn admin-btn-edit"
                           onClick={() => setTxToEdit(tx)}
                           variant="outline"
+                          size="sm"
                         >
                           Edit
                         </Button>
@@ -892,6 +893,7 @@ export default function FinanceTracker() {
                           className="finance-link-btn finance-link-btn--danger"
                           onClick={() => setTxToDelete(tx.id)}
                           variant="destructive"
+                          size="sm"
                         >
                           Delete
                         </Button>

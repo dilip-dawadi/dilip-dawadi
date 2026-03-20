@@ -406,6 +406,7 @@ export default function ProjectsAdminPage() {
                     <Button
                       onClick={() => setProjectToEdit(project)}
                       variant="outline"
+                      size="sm"
                       className="admin-btn-edit flex-1"
                     >
                       Edit
@@ -413,6 +414,7 @@ export default function ProjectsAdminPage() {
                     <Button
                       onClick={() => setProjectToDelete(project.id)}
                       variant="destructive"
+                      size="sm"
                       className="flex-1"
                     >
                       Delete

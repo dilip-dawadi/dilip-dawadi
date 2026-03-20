@@ -1,9 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { signOut, useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import AdminLayout from '@/components/Admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 
 interface FinanceSummaryResponse {
@@ -64,27 +63,13 @@ function minutesToHoursLabel(minutes: number): string {
 }
 
 export default function AdminDashboard() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
   const [overview, setOverview] = useState<DashboardOverview>(defaultOverview);
   const [overviewLoading, setOverviewLoading] = useState(true);
   const [overviewError, setOverviewError] = useState('');
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.replace('/admin');
-    } else if (status === 'authenticated' && session.user?.role !== 'admin') {
-      router.replace('/admin');
-    }
-  }, [status, session, router]);
-
-  useEffect(() => {
-    if (status !== 'authenticated' || session?.user?.role !== 'admin') {
-      return;
-    }
-
     void loadOverview();
-  }, [status, session?.user?.role]);
+  }, []);
 
   async function loadOverview() {
     setOverviewLoading(true);
@@ -141,27 +126,6 @@ export default function AdminDashboard() {
     }
   }
 
-  const handleSignOut = () => {
-    signOut({ callbackUrl: '/admin' });
-  };
-
-  if (status === 'loading') {
-    return (
-      <div
-        className="flex min-h-screen items-center justify-center"
-        style={{ backgroundColor: 'var(--color-bg)' }}
-      >
-        <div className="text-lg" style={{ color: 'var(--color-fg)' }}>
-          Loading...
-        </div>
-      </div>
-    );
-  }
-
-  if (status === 'unauthenticated' || session?.user?.role !== 'admin') {
-    return null;
-  }
-
   const dashboardCards = [
     {
       title: 'About',
@@ -208,232 +172,193 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="admin-shell min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
-      <nav
-        className="shadow-sm"
+    <AdminLayout title="Dashboard" backLink="/admin" showBackButton={false}>
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold" style={{ color: 'var(--color-fg-bold)' }}>
+          Welcome back!
+        </h2>
+        <p className="mt-2" style={{ color: 'var(--color-fg-light)' }}>
+          Manage your content from the dashboard below.
+        </p>
+      </div>
+
+      <section
+        className="mb-6 rounded-lg p-4"
         style={{
-          borderBottom: '1px solid var(--color-border)',
+          border: '1px solid var(--color-border)',
           backgroundColor: 'var(--color-bg-alt)',
         }}
       >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 justify-between">
-            <div className="flex items-center gap-4">
-              <span className="text-sm select-none opacity-0">← Back</span>
-              <div className="text-xl font-bold" style={{ color: 'var(--color-fg-bold)' }}>
-                Dashboard
-              </div>
-            </div>
-            <div className="admin-dashboard-actions flex items-center gap-4">
-              <div className="flex items-center gap-4">
-                {session?.user?.image && (
-                  <img
-                    src={session.user.image}
-                    alt={session.user.name || 'User'}
-                    className="h-8 w-8 rounded-full ring-2"
-                    style={{ borderColor: 'var(--color-border)' }}
-                  />
-                )}
-                <span className="text-sm" style={{ color: 'var(--color-fg)' }}>
-                  {session?.user?.name}
-                </span>
-              </div>
-              <Button onClick={handleSignOut} variant="destructive" className="px-4">
-                Sign Out
-              </Button>
-            </div>
-          </div>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="text-base font-semibold" style={{ color: 'var(--color-fg-bold)' }}>
+            Advanced Overview
+          </h3>
+          <Button
+            type="button"
+            onClick={() => void loadOverview()}
+            variant="outline"
+            className="px-4"
+          >
+            Refresh
+          </Button>
         </div>
-      </nav>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold" style={{ color: 'var(--color-fg-bold)' }}>
-            Welcome back!
-          </h2>
-          <p className="mt-2" style={{ color: 'var(--color-fg-light)' }}>
-            Manage your content from the dashboard below.
+        {overviewError ? (
+          <p className="text-sm" style={{ color: 'var(--color-fg-light)' }}>
+            {overviewError}
           </p>
-        </div>
+        ) : null}
 
-        <section
-          className="mb-6 rounded-lg p-4"
-          style={{
-            border: '1px solid var(--color-border)',
-            backgroundColor: 'var(--color-bg-alt)',
-          }}
-        >
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 className="text-base font-semibold" style={{ color: 'var(--color-fg-bold)' }}>
-              Advanced Overview
-            </h3>
-            <Button
-              type="button"
-              onClick={() => void loadOverview()}
-              variant="outline"
-              className="px-4"
-            >
-              Refresh
-            </Button>
-          </div>
-
-          {overviewError ? (
-            <p className="text-sm" style={{ color: 'var(--color-fg-light)' }}>
-              {overviewError}
-            </p>
-          ) : null}
-
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {overviewLoading ? (
-              Array.from({ length: 6 }).map((_, index) => (
-                <div
-                  key={`overview-skeleton-${index}`}
-                  className="flex animate-pulse flex-col items-start justify-start gap-1 rounded-md px-3 py-2.5"
-                  style={{ backgroundColor: 'var(--color-bg)' }}
-                >
-                  <div
-                    className="h-4 w-24 rounded"
-                    style={{ backgroundColor: 'var(--color-surface-active)' }}
-                  />
-                  <div
-                    className="h-7 w-24 rounded"
-                    style={{ backgroundColor: 'var(--color-surface-active)' }}
-                  />
-                  <div
-                    className="h-4 w-32 rounded"
-                    style={{ backgroundColor: 'var(--color-surface-active)' }}
-                  />
-                </div>
-              ))
-            ) : (
-              <>
-                <div
-                  className="flex flex-col items-start justify-start gap-1 rounded-md px-3 py-2.5"
-                  style={{ backgroundColor: 'var(--color-bg)' }}
-                >
-                  <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    Today Work Income
-                  </p>
-                  <p className="m-0 text-lg leading-tight font-semibold text-emerald-700">
-                    {toCurrency(overview.todayWorkIncomeCents)}
-                  </p>
-                  <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    {minutesToHoursLabel(overview.todayWorkedMinutes)} logged today
-                  </p>
-                </div>
-
-                <div
-                  className="flex flex-col items-start justify-start gap-1 rounded-md px-3 py-2.5"
-                  style={{ backgroundColor: 'var(--color-bg)' }}
-                >
-                  <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    Pending Money
-                  </p>
-                  <p className="m-0 text-lg leading-tight font-semibold text-red-700">
-                    {toCurrency(overview.pendingMoneyCents)}
-                  </p>
-                  <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    Total unpaid receivables
-                  </p>
-                </div>
-
-                <div
-                  className="flex flex-col items-start justify-start gap-1 rounded-md px-3 py-2.5"
-                  style={{ backgroundColor: 'var(--color-bg)' }}
-                >
-                  <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    Monthly Income
-                  </p>
-                  <p className="m-0 text-lg leading-tight font-semibold text-green-700">
-                    {toCurrency(overview.incomeCents)}
-                  </p>
-                  <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    Current month total
-                  </p>
-                </div>
-
-                <div
-                  className="flex flex-col items-start justify-start gap-1 rounded-md px-3 py-2.5"
-                  style={{ backgroundColor: 'var(--color-bg)' }}
-                >
-                  <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    Monthly Expense
-                  </p>
-                  <p className="m-0 text-lg leading-tight font-semibold text-amber-700">
-                    {toCurrency(overview.expenseCents)}
-                  </p>
-                  <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    Current month total
-                  </p>
-                </div>
-
-                <div
-                  className="flex flex-col items-start justify-start gap-1 rounded-md px-3 py-2.5"
-                  style={{ backgroundColor: 'var(--color-bg)' }}
-                >
-                  <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    Net Cashflow
-                  </p>
-                  <p
-                    className="m-0 text-lg leading-tight font-semibold"
-                    style={{ color: overview.netCents >= 0 ? '#166534' : '#b91c1c' }}
-                  >
-                    {toCurrency(overview.netCents)}
-                  </p>
-                  <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    Income minus expenses
-                  </p>
-                </div>
-
-                <div
-                  className="flex flex-col items-start justify-start gap-1 rounded-md px-3 py-2.5"
-                  style={{ backgroundColor: 'var(--color-bg)' }}
-                >
-                  <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    Savings Rate
-                  </p>
-                  <p
-                    className="m-0 text-lg leading-tight font-semibold"
-                    style={{ color: 'var(--color-fg-bold)' }}
-                  >
-                    {overview.savingsRatePercent}%
-                  </p>
-                  <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
-                    Net as share of income
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-        </section>
-
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {dashboardCards.map((card) => (
-            <Link
-              key={card.href}
-              href={card.href}
-              className="group relative overflow-hidden rounded-lg p-6 shadow-sm transition-all hover:shadow-lg"
-              style={{
-                border: '1px solid var(--color-border)',
-                backgroundColor: 'var(--color-bg-alt)',
-              }}
-            >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {overviewLoading ? (
+            Array.from({ length: 6 }).map((_, index) => (
               <div
-                className={`absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full ${card.color} opacity-10 transition-transform group-hover:scale-150`}
-              />
-              <div className="relative">
-                <div className="mb-3 text-4xl">{card.icon}</div>
-                <h3 className="text-lg font-semibold" style={{ color: 'var(--color-fg-bold)' }}>
-                  {card.title}
-                </h3>
-                <p className="mt-2 text-sm" style={{ color: 'var(--color-fg-light)' }}>
-                  {card.description}
+                key={`overview-skeleton-${index}`}
+                className="flex animate-pulse flex-col items-start justify-start gap-1 rounded-md px-3 py-2.5"
+                style={{ backgroundColor: 'var(--color-bg)' }}
+              >
+                <div
+                  className="h-4 w-24 rounded"
+                  style={{ backgroundColor: 'var(--color-surface-active)' }}
+                />
+                <div
+                  className="h-7 w-24 rounded"
+                  style={{ backgroundColor: 'var(--color-surface-active)' }}
+                />
+                <div
+                  className="h-4 w-32 rounded"
+                  style={{ backgroundColor: 'var(--color-surface-active)' }}
+                />
+              </div>
+            ))
+          ) : (
+            <>
+              <div
+                className="flex flex-col items-start justify-start gap-1 rounded-md px-3 py-2.5"
+                style={{ backgroundColor: 'var(--color-bg)' }}
+              >
+                <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
+                  Today Work Income
+                </p>
+                <p className="m-0 text-lg leading-tight font-semibold text-emerald-700">
+                  {toCurrency(overview.todayWorkIncomeCents)}
+                </p>
+                <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
+                  {minutesToHoursLabel(overview.todayWorkedMinutes)} logged today
                 </p>
               </div>
-            </Link>
-          ))}
+
+              <div
+                className="flex flex-col items-start justify-start gap-1 rounded-md px-3 py-2.5"
+                style={{ backgroundColor: 'var(--color-bg)' }}
+              >
+                <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
+                  Pending Money
+                </p>
+                <p className="m-0 text-lg leading-tight font-semibold text-red-700">
+                  {toCurrency(overview.pendingMoneyCents)}
+                </p>
+                <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
+                  Total unpaid receivables
+                </p>
+              </div>
+
+              <div
+                className="flex flex-col items-start justify-start gap-1 rounded-md px-3 py-2.5"
+                style={{ backgroundColor: 'var(--color-bg)' }}
+              >
+                <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
+                  Monthly Income
+                </p>
+                <p className="m-0 text-lg leading-tight font-semibold text-green-700">
+                  {toCurrency(overview.incomeCents)}
+                </p>
+                <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
+                  Current month total
+                </p>
+              </div>
+
+              <div
+                className="flex flex-col items-start justify-start gap-1 rounded-md px-3 py-2.5"
+                style={{ backgroundColor: 'var(--color-bg)' }}
+              >
+                <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
+                  Monthly Expense
+                </p>
+                <p className="m-0 text-lg leading-tight font-semibold text-amber-700">
+                  {toCurrency(overview.expenseCents)}
+                </p>
+                <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
+                  Current month total
+                </p>
+              </div>
+
+              <div
+                className="flex flex-col items-start justify-start gap-1 rounded-md px-3 py-2.5"
+                style={{ backgroundColor: 'var(--color-bg)' }}
+              >
+                <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
+                  Net Cashflow
+                </p>
+                <p
+                  className="m-0 text-lg leading-tight font-semibold"
+                  style={{ color: overview.netCents >= 0 ? '#166534' : '#b91c1c' }}
+                >
+                  {toCurrency(overview.netCents)}
+                </p>
+                <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
+                  Income minus expenses
+                </p>
+              </div>
+
+              <div
+                className="flex flex-col items-start justify-start gap-1 rounded-md px-3 py-2.5"
+                style={{ backgroundColor: 'var(--color-bg)' }}
+              >
+                <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
+                  Savings Rate
+                </p>
+                <p
+                  className="m-0 text-lg leading-tight font-semibold"
+                  style={{ color: 'var(--color-fg-bold)' }}
+                >
+                  {overview.savingsRatePercent}%
+                </p>
+                <p className="m-0 text-xs leading-4" style={{ color: 'var(--color-fg-light)' }}>
+                  Net as share of income
+                </p>
+              </div>
+            </>
+          )}
         </div>
-      </main>
-    </div>
+      </section>
+
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {dashboardCards.map((card) => (
+          <Link
+            key={card.href}
+            href={card.href}
+            className="group relative overflow-hidden rounded-lg p-6 shadow-sm transition-all hover:shadow-lg"
+            style={{
+              border: '1px solid var(--color-border)',
+              backgroundColor: 'var(--color-bg-alt)',
+            }}
+          >
+            <div
+              className={`absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full ${card.color} opacity-10 transition-transform group-hover:scale-150`}
+            />
+            <div className="relative">
+              <div className="mb-3 text-4xl">{card.icon}</div>
+              <h3 className="text-lg font-semibold" style={{ color: 'var(--color-fg-bold)' }}>
+                {card.title}
+              </h3>
+              <p className="mt-2 text-sm" style={{ color: 'var(--color-fg-light)' }}>
+                {card.description}
+              </p>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </AdminLayout>
   );
 }

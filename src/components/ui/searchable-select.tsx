@@ -4,7 +4,7 @@ import type { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { faCheck, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { cn } from '@/lib/utils';
-import { ChevronDownIcon } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 export interface SearchableSelectOption {
   id: string;
@@ -79,7 +79,7 @@ export function SearchableSelect({
           <span className={selectedOption ? 'text-foreground' : 'text-muted-foreground'}>
             {selectedOption ? selectedOption.label : placeholder}
           </span>
-          <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-70" />
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-70" />
         </button>
       </PopoverPrimitive.Trigger>
 

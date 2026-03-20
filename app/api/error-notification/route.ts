@@ -9,8 +9,8 @@ export async function POST(request: NextRequest) {
     const ip =
       request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
-    // Determine severity based on whether it's critical
-    const severity = critical ? EventSeverity.CRITICAL : EventSeverity.HIGH;
+    // Non-critical UI/runtime errors should not be treated as high-priority security incidents.
+    const severity = critical ? EventSeverity.CRITICAL : EventSeverity.MEDIUM;
 
     // Send notification to admin
     await notifySystemError({

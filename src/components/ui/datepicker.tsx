@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { Calendar1, ChevronDownIcon } from 'lucide-react';
+import { Calendar1 } from 'lucide-react';
 
 type DatePickerProps = {
   id: string;

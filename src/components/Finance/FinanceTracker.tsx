@@ -504,9 +504,13 @@ export default function FinanceTracker() {
             type="button"
             className="finance-secondary-btn h-12!"
             onClick={enableFinanceNotifications}
-            variant="outline"
+            style={{
+              border: '1px solid var(--color-accent-border)',
+              background: 'color-mix(in srgb, var(--color-accent) 92%, var(--color-bg-alt))',
+              color: 'var(--color-white)',
+            }}
           >
-            {pushEnabled ? 'Push Ready' : 'Enable Finance Alerts'}
+            {pushEnabled ? 'Push Enabled' : 'Enable Finance Alerts'}
           </Button>
         </div>
       </header>

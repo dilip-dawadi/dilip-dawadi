@@ -1,14 +1,23 @@
+.admin-shell {
+  --color-accent: #15803d;
+  --color-accent-secondary: #22c55e;
+  --color-accent-hover: #166534;
+  --color-accent-light: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  --color-accent-subtle: color-mix(in srgb, var(--color-accent) 7%, transparent);
+  --color-accent-border: color-mix(in srgb, var(--color-accent) 52%, transparent);
+}
+
 .admin-shell .finance-tab-btn {
   min-height: 38px;
   min-width: 140px;
-  border-radius: 2px;
+  border-radius: 4px;
   padding-inline: 0.9rem;
 }
 
 .admin-shell .todo-push-btn,
 .admin-shell .finance-secondary-btn {
   min-height: 42px;
-  border-radius: 2px;
+  border-radius: 4px;
 }
 
 .admin-shell button.inline-flex[data-variant='destructive'] {

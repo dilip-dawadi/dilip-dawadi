@@ -7,7 +7,8 @@ type CheckboxWithLabelProps = {
   onCheckedChange: (checked: boolean) => void;
   className?: string;
   inputClassName?: string;
-} & Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'checked' | 'onChange'>;
+  size?: 'default' | 'sm';
+} & Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'checked' | 'onChange' | 'size'>;
 
 export function CheckboxWithLabel({
   label,
@@ -16,6 +17,7 @@ export function CheckboxWithLabel({
   className,
   inputClassName,
   disabled,
+  size = 'default',
   id,
   ...props
 }: CheckboxWithLabelProps) {
@@ -26,6 +28,7 @@ export function CheckboxWithLabel({
         'inline-flex items-center gap-2 rounded-xs h-12 border px-3 py-1.5 text-sm',
         'border-(--color-border) bg-bg text-(--color-fg)',
         disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
+        size === 'sm' ? 'h-9 px-2 text-xs' : '',
         className,
       )}
     >
@@ -38,6 +41,7 @@ export function CheckboxWithLabel({
         className={cn(
           'h-4 w-4 rounded-[3px] border border-(--color-border) bg-bg',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-accent)',
+          size === 'sm' ? 'h-3 w-3' : '',
           inputClassName,
         )}
         style={{ accentColor: 'var(--color-accent)' }}

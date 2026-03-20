@@ -15,6 +15,19 @@ function hoursLabel(minutesWorked: number): string {
   return Number.isInteger(hours) ? `${hours}` : hours.toFixed(2);
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function textToHtmlParagraphs(value: string): string {
+  return escapeHtml(value).replaceAll('\n', '<br/>');
+}
+
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id || session.user.role !== 'admin') {
@@ -61,6 +74,8 @@ export async function POST(request: Request) {
     let sent = 0;
     const now = new Date();
 
+    const senderName = session.user.name?.trim() || 'Dilip';
+
     for (const item of receivables) {
       if (!item.payerEmail) {
         continue;
@@ -79,30 +94,56 @@ export async function POST(request: Request) {
 
       const dueLine =
         includeDueDate && item.dueAt ? `\nDue date: ${item.dueAt.toLocaleDateString()}` : '';
-      const customMessage = parsed.customMessage ? `\n\n${parsed.customMessage.trim()}` : '';
+      const noteLine = item.note ? `\nReference: ${item.note}` : '';
+      const customMessageLine = parsed.customMessage
+        ? `\n\nAdditional note:\n${parsed.customMessage.trim()}`
+        : '';
 
-      const text = `Hello ${item.payerName},\n\nThis is a payment reminder for "${item.title}".\nAmount due: $${toCurrency(item.amountCents)}${dueLine}${detailsLine}${customMessage}\n\nPlease let me know once payment is completed.\nThank you.`;
+      const text = `Hello ${item.payerName},
+
+I hope you are doing well.
+
+This is a payment reminder regarding the pending payment for "${item.title}".
+
+Payment details:
+- Amount due: $${toCurrency(item.amountCents)}${dueLine}${detailsLine}${noteLine}${customMessageLine}
+
+Please confirm once payment has been completed. If payment has already been sent, kindly disregard this reminder.
+
+Thank you for your time and support.
+
+Best regards,
+${senderName}`;
 
       const html = `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
-          <p>Hello ${item.payerName},</p>
-          <p>This is a payment reminder for <strong>${item.title}</strong>.</p>
-          <p><strong>Amount due:</strong> $${toCurrency(item.amountCents)}</p>
-          ${includeDueDate && item.dueAt ? `<p><strong>Due date:</strong> ${item.dueAt.toLocaleDateString()}</p>` : ''}
-          ${
-            includeWorkDetails && minutesWorked && hourlyRateCents
-              ? `<p><strong>Work hours:</strong> ${hoursLabel(minutesWorked)}h<br/><strong>Rate:</strong> $${toCurrency(hourlyRateCents)} / hour</p>`
-              : ''
-          }
-          ${item.note ? `<p><strong>Notes:</strong> ${item.note}</p>` : ''}
-          ${parsed.customMessage ? `<p>${parsed.customMessage.trim()}</p>` : ''}
-          <p>Please let me know once payment is completed. Thank you.</p>
+          <p>Hello ${escapeHtml(item.payerName)},</p>
+          <p>I hope you are doing well.</p>
+          <p>This is a payment reminder regarding the pending payment for <strong>${escapeHtml(item.title)}</strong>.</p>
+
+          <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:12px 14px; margin:14px 0;">
+            <p style="margin:0 0 8px;"><strong>Payment details</strong></p>
+            <p style="margin:0;"><strong>Amount due:</strong> $${toCurrency(item.amountCents)}</p>
+            ${includeDueDate && item.dueAt ? `<p style="margin:6px 0 0;"><strong>Due date:</strong> ${item.dueAt.toLocaleDateString()}</p>` : ''}
+            ${
+              includeWorkDetails && minutesWorked && hourlyRateCents
+                ? `<p style="margin:6px 0 0;"><strong>Work hours:</strong> ${hoursLabel(minutesWorked)}h<br/><strong>Rate:</strong> $${toCurrency(hourlyRateCents)} / hour</p>`
+                : ''
+            }
+            ${item.note ? `<p style="margin:6px 0 0;"><strong>Reference:</strong> ${textToHtmlParagraphs(item.note)}</p>` : ''}
+          </div>
+
+          ${parsed.customMessage ? `<p><strong>Additional note:</strong><br/>${textToHtmlParagraphs(parsed.customMessage.trim())}</p>` : ''}
+
+          <p>Please confirm once payment has been completed. If payment has already been sent, kindly disregard this reminder.</p>
+          <p>Thank you for your time and support.</p>
+          <p style="margin-top:14px;">Best regards,<br/>${escapeHtml(senderName)}</p>
         </div>
       `;
 
       const ok = await sendEmail({
         to: item.payerEmail,
-        subject: `Payment reminder: ${item.title} ($${toCurrency(item.amountCents)})`,
+        subject: `Payment reminder: ${item.title} (Amount due: $${toCurrency(item.amountCents)})`,
         text,
         html,
       });

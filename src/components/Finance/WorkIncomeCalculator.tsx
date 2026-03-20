@@ -165,7 +165,7 @@ type WorkIncomeTab = 'today-income' | 'pending-payment';
 
 const REMINDER_TEMPLATE_STORAGE_KEY = 'work-income:reminder-message-template';
 const DEFAULT_REMINDER_TEMPLATE =
-  'Hi, this is a friendly reminder to clear the pending amount. Please confirm once sent.';
+  'Hi, this is a payment reminder to clear the pending amount. Please confirm once sent.';
 
 export default function WorkIncomeCalculator() {
   const [activeTab, setActiveTab] = useState<WorkIncomeTab>('today-income');
@@ -192,6 +192,7 @@ export default function WorkIncomeCalculator() {
   const [reminderMessageTemplate, setReminderMessageTemplate] = useState(DEFAULT_REMINDER_TEMPLATE);
   const [includeDueDateInReminder, setIncludeDueDateInReminder] = useState(false);
   const [showReminderConfirm, setShowReminderConfirm] = useState(false);
+  const [reminderConfirmIds, setReminderConfirmIds] = useState<string[]>([]);
   const [workLogToDelete, setWorkLogToDelete] = useState<string | null>(null);
   const [receivableToEdit, setReceivableToEdit] = useState<Receivable | null>(null);
   const [receivableToDelete, setReceivableToDelete] = useState<string | null>(null);
@@ -565,9 +566,26 @@ export default function WorkIncomeCalculator() {
       includeDueDateInReminder && item.dueAt
         ? `\nDue date: ${new Date(item.dueAt).toLocaleDateString()}`
         : '';
-    const customMessage = reminderMessage.trim() ? `\n\n${reminderMessage.trim()}` : '';
+    const noteLine = item.note ? `\nReference: ${item.note}` : '';
+    const customMessage = reminderMessage.trim()
+      ? `\n\nAdditional note:\n${reminderMessage.trim()}`
+      : '';
 
-    return `Hello ${item.payerName},\n\nThis is a payment reminder for "${item.title}".\nAmount due: ${toCurrency(item.amountCents)}${dueLine}${detailsLine}${customMessage}\n\nPlease let me know once payment is completed.\nThank you.`;
+    return `Hello ${item.payerName},
+
+I hope you are doing well.
+
+This is a payment reminder regarding the pending payment for "${item.title}".
+
+Payment details:
+- Amount due: ${toCurrency(item.amountCents)}${dueLine}${detailsLine}${noteLine}${customMessage}
+
+Please confirm once payment has been completed. If payment has already been sent, kindly disregard this reminder.
+
+Thank you for your time and support.
+
+Best regards,
+Dilip`;
   }
 
   async function deleteReceivable(id: string) {
@@ -599,8 +617,8 @@ export default function WorkIncomeCalculator() {
   );
 
   const reminderPreviewItems = useMemo(
-    () => pendingReceivables.filter((item) => selectedPendingIds.includes(item.id)),
-    [pendingReceivables, selectedPendingIds],
+    () => pendingReceivables.filter((item) => reminderConfirmIds.includes(item.id)),
+    [pendingReceivables, reminderConfirmIds],
   );
 
   const reminderPreviewEmailItems = useMemo(
@@ -1151,6 +1169,7 @@ export default function WorkIncomeCalculator() {
                       return;
                     }
 
+                    setReminderConfirmIds(selectedPendingIds);
                     setShowReminderConfirm(true);
                   }}
                   variant="outline"
@@ -1196,6 +1215,7 @@ export default function WorkIncomeCalculator() {
                               label="Select"
                               checked={selectedPendingIds.includes(item.id)}
                               onCheckedChange={() => togglePendingSelection(item.id)}
+                              size="sm"
                             />
                             <strong>+ {toCurrency(item.amountCents)}</strong>
                             <div className="finance-inline-actions">
@@ -1220,7 +1240,10 @@ export default function WorkIncomeCalculator() {
                               <Button
                                 type="button"
                                 className="finance-link-btn"
-                                onClick={() => void sendReminders([item.id])}
+                                onClick={() => {
+                                  setReminderConfirmIds([item.id]);
+                                  setShowReminderConfirm(true);
+                                }}
                                 variant="outline"
                                 size="sm"
                               >
@@ -1297,7 +1320,12 @@ export default function WorkIncomeCalculator() {
 
       <ConfirmDialog
         open={showReminderConfirm}
-        setOpen={setShowReminderConfirm}
+        setOpen={(open) => {
+          setShowReminderConfirm(open);
+          if (!open) {
+            setReminderConfirmIds([]);
+          }
+        }}
         title="Confirm Reminder Email"
         description="Review recipients and message preview before sending."
         confirmText={`Send ${reminderPreviewEmailItems.length} Reminder${
@@ -1308,7 +1336,7 @@ export default function WorkIncomeCalculator() {
         confirmVariant="default"
         isLoading={sendingReminder}
         onConfirm={async () => {
-          if (selectedPendingIds.length === 0) {
+          if (reminderConfirmIds.length === 0) {
             toast.error('Select at least one pending receivable first.');
             return;
           }
@@ -1318,8 +1346,9 @@ export default function WorkIncomeCalculator() {
             return;
           }
 
-          await sendReminders(selectedPendingIds);
+          await sendReminders(reminderConfirmIds);
           setShowReminderConfirm(false);
+          setReminderConfirmIds([]);
         }}
       >
         <div className="finance-form" style={{ gap: '0.75rem' }}>

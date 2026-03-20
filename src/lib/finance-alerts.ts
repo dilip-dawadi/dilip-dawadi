@@ -18,6 +18,10 @@ interface FinanceAlertMessage {
   message: string;
 }
 
+interface FinanceAlertDispatchOptions {
+  cadence?: 'daily' | 'weekly';
+}
+
 function monthRange(now: Date): { start: Date; end: Date; key: string } {
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
@@ -46,7 +50,10 @@ function escapeHtml(value: string): string {
     .replaceAll("'", '&#39;');
 }
 
-export async function dispatchFinanceAlerts(): Promise<FinanceAlertDispatchResult> {
+export async function dispatchFinanceAlerts(
+  options: FinanceAlertDispatchOptions = {},
+): Promise<FinanceAlertDispatchResult> {
+  const cadence = options.cadence || 'daily';
   const now = new Date();
   const { start, end, key } = monthRange(now);
 
@@ -111,7 +118,7 @@ export async function dispatchFinanceAlerts(): Promise<FinanceAlertDispatchResul
       continue;
     }
 
-    if (user.lastAlertSentAt && sameUtcDay(user.lastAlertSentAt, now)) {
+    if (cadence === 'daily' && user.lastAlertSentAt && sameUtcDay(user.lastAlertSentAt, now)) {
       skipped += 1;
       continue;
     }
@@ -155,6 +162,17 @@ export async function dispatchFinanceAlerts(): Promise<FinanceAlertDispatchResul
     }
 
     const netCents = incomeCents - expenseCents;
+    const daysElapsed = Math.max(
+      1,
+      Math.ceil((now.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)),
+    );
+    const projectedMonthlyExpenseCents = Math.round((expenseCents / daysElapsed) * 30);
+    const savingsGapCents =
+      user.monthlySavingsTargetCents > 0
+        ? Math.max(0, user.monthlySavingsTargetCents - netCents)
+        : 0;
+    const limitRemainingCents =
+      user.monthlyLimitCents > 0 ? Math.max(0, user.monthlyLimitCents - expenseCents) : 0;
     const alerts: FinanceAlertMessage[] = [];
 
     if (user.monthlyLimitCents > 0) {
@@ -198,18 +216,28 @@ export async function dispatchFinanceAlerts(): Promise<FinanceAlertDispatchResul
 
     if (user.emailAlertsEnabled && user.email) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
-      const subject = `Finance Tracker: ${alerts.length > 0 ? 'Money alert' : 'Daily summary'} (${key})`;
+      const subject =
+        cadence === 'weekly'
+          ? `Finance Tracker: Weekly summary (${key})`
+          : `Finance Tracker: ${alerts.length > 0 ? 'Money alert' : 'Daily summary'} (${key})`;
+      const introLine =
+        cadence === 'weekly'
+          ? "here's your weekly money summary with progress and month-end projection."
+          : "here's your daily money snapshot.";
 
       const html = `
         <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto;">
           <h2 style="margin-bottom: 8px;">Finance Tracker Pulse</h2>
-          <p style="margin-bottom: 14px;">Hi ${escapeHtml(user.name || 'there')}, here's your daily money snapshot.</p>
+          <p style="margin-bottom: 14px;">Hi ${escapeHtml(user.name || 'there')}, ${introLine}</p>
 
           <div style="border: 1px solid #d9dde6; border-radius: 8px; padding: 14px; background: #f9fbff;">
             <p><strong>Month:</strong> ${key}</p>
             <p><strong>Income:</strong> ${toCurrency(incomeCents)}</p>
             <p><strong>Expense:</strong> ${toCurrency(expenseCents)}</p>
             <p><strong>Net:</strong> ${toCurrency(netCents)}</p>
+            <p><strong>Projected Expense (month-end):</strong> ${toCurrency(projectedMonthlyExpenseCents)}</p>
+            ${user.monthlySavingsTargetCents > 0 ? `<p><strong>Away from Savings Target:</strong> ${toCurrency(savingsGapCents)}</p>` : ''}
+            ${user.monthlyLimitCents > 0 ? `<p><strong>Remaining Monthly Limit:</strong> ${toCurrency(limitRemainingCents)}</p>` : ''}
             ${topCategory ? `<p><strong>Top Category:</strong> ${escapeHtml(topCategory[0])} (${toCurrency(topCategory[1])})</p>` : ''}
           </div>
 
@@ -228,7 +256,19 @@ export async function dispatchFinanceAlerts(): Promise<FinanceAlertDispatchResul
       emailOk = await sendEmail({
         to: user.email,
         subject,
-        text: `Finance summary ${key}\nIncome: ${toCurrency(incomeCents)}\nExpense: ${toCurrency(expenseCents)}\nNet: ${toCurrency(netCents)}\n${topAlert ? `Alert: ${topAlert.message}` : 'No alerts today.'}`,
+        text:
+          `Finance summary ${key}\n` +
+          `Income: ${toCurrency(incomeCents)}\n` +
+          `Expense: ${toCurrency(expenseCents)}\n` +
+          `Net: ${toCurrency(netCents)}\n` +
+          `Projected Expense (month-end): ${toCurrency(projectedMonthlyExpenseCents)}\n` +
+          (user.monthlySavingsTargetCents > 0
+            ? `Away from Savings Target: ${toCurrency(savingsGapCents)}\n`
+            : '') +
+          (user.monthlyLimitCents > 0
+            ? `Remaining Monthly Limit: ${toCurrency(limitRemainingCents)}\n`
+            : '') +
+          `${topAlert ? `Alert: ${topAlert.message}` : 'No alerts today.'}`,
         html,
       });
 
@@ -242,7 +282,9 @@ export async function dispatchFinanceAlerts(): Promise<FinanceAlertDispatchResul
       if (subs.length > 0) {
         const payloadBody = topAlert
           ? topAlert.message
-          : `Net ${toCurrency(netCents)} this month. Keep saving.`;
+          : cadence === 'weekly'
+            ? `Net ${toCurrency(netCents)}. Projected spend ${toCurrency(projectedMonthlyExpenseCents)}.`
+            : `Net ${toCurrency(netCents)} this month. Keep saving.`;
 
         const pushResults = await Promise.all(
           subs.map((sub) =>
@@ -252,7 +294,10 @@ export async function dispatchFinanceAlerts(): Promise<FinanceAlertDispatchResul
                 keys: sub.keys as { p256dh: string; auth: string },
               },
               {
-                title: 'Finance Tracker Daily Pulse',
+                title:
+                  cadence === 'weekly'
+                    ? 'Finance Tracker Weekly Summary'
+                    : 'Finance Tracker Daily Pulse',
                 body: payloadBody,
                 tag: `finance-alert-${user.userId}`,
                 url: '/admin/dashboard/planner',
@@ -278,13 +323,15 @@ export async function dispatchFinanceAlerts(): Promise<FinanceAlertDispatchResul
     }
 
     if (emailOk && pushOk) {
-      await db
-        .update(financeSettings)
-        .set({
-          lastAlertSentAt: now,
-          updatedAt: now,
-        })
-        .where(eq(financeSettings.userId, user.userId));
+      if (cadence === 'daily') {
+        await db
+          .update(financeSettings)
+          .set({
+            lastAlertSentAt: now,
+            updatedAt: now,
+          })
+          .where(eq(financeSettings.userId, user.userId));
+      }
 
       notifiedUsers += 1;
     } else {

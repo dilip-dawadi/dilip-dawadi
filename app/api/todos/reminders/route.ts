@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { dispatchDueTodoReminders } from '@/lib/todo-reminders';
+import { dispatchDueTodoReminders, dispatchWeeklyTodoSummary } from '@/lib/todo-reminders';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,13 +31,17 @@ async function runReminderDispatch(request: NextRequest) {
   const session = await auth();
   const isAdmin = session?.user?.role === 'admin';
   const authorizedByCron = hasValidCronSecret(request);
+  const mode = request.nextUrl.searchParams.get('mode');
 
   if (!isAdmin && !authorizedByCron) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const result = await dispatchDueTodoReminders();
+    const result =
+      mode === 'weekly-summary'
+        ? await dispatchWeeklyTodoSummary()
+        : await dispatchDueTodoReminders();
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
     console.error('Failed to dispatch todo reminders:', error);

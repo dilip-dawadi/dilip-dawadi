@@ -286,3 +286,191 @@ export async function dispatchDueTodoReminders(): Promise<ReminderDispatchResult
     failedToDispatch: dueTodos.length - notified,
   };
 }
+
+export async function dispatchWeeklyTodoSummary(): Promise<ReminderDispatchResult> {
+  const now = new Date();
+  const nextWeek = new Date(now);
+  nextWeek.setUTCDate(nextWeek.getUTCDate() + 7);
+
+  const activeReminderTodos = await db
+    .select({
+      id: todos.id,
+      userId: todos.userId,
+      title: todos.title,
+      description: todos.description,
+      priority: todos.priority,
+      recurrence: todos.recurrence,
+      repeatEveryDays: todos.repeatEveryDays,
+      remindAt: todos.remindAt,
+      emailReminder: todos.emailReminder,
+      pushReminder: todos.pushReminder,
+      email: users.email,
+      name: users.name,
+    })
+    .from(todos)
+    .innerJoin(users, eq(users.id, todos.userId))
+    .where(
+      and(
+        isNotNull(todos.remindAt),
+        ne(todos.status, 'done'),
+        or(eq(todos.emailReminder, true), eq(todos.pushReminder, true)),
+      ),
+    );
+
+  if (activeReminderTodos.length === 0) {
+    return { scanned: 0, notified: 0, emailSent: 0, pushSent: 0, failedToDispatch: 0 };
+  }
+
+  const userIds = [...new Set(activeReminderTodos.map((todo) => todo.userId))];
+
+  const subscriptions = await db
+    .select({
+      id: pushSubscriptions.id,
+      userId: pushSubscriptions.userId,
+      endpoint: pushSubscriptions.endpoint,
+      keys: pushSubscriptions.keys,
+    })
+    .from(pushSubscriptions)
+    .where(inArray(pushSubscriptions.userId, userIds));
+
+  const subscriptionsByUser = new Map<string, typeof subscriptions>();
+  for (const sub of subscriptions) {
+    const list = subscriptionsByUser.get(sub.userId) || [];
+    list.push(sub);
+    subscriptionsByUser.set(sub.userId, list);
+  }
+
+  let notified = 0;
+  let emailSent = 0;
+  let pushSent = 0;
+  const staleSubscriptionIds = new Set<string>();
+
+  const todosByUser = new Map<string, typeof activeReminderTodos>();
+  for (const todo of activeReminderTodos) {
+    const list = todosByUser.get(todo.userId) || [];
+    list.push(todo);
+    todosByUser.set(todo.userId, list);
+  }
+
+  for (const [userId, userTodos] of todosByUser.entries()) {
+    const userEmail = userTodos[0]?.email;
+    const userName = userTodos[0]?.name || 'there';
+    const overdueTodos = userTodos.filter((todo) => (todo.remindAt ? todo.remindAt <= now : false));
+    const upcomingTodos = userTodos.filter(
+      (todo) => todo.remindAt && todo.remindAt > now && todo.remindAt <= nextWeek,
+    );
+    const highPriorityCount = userTodos.filter((todo) => todo.priority === 'high').length;
+
+    const emailTodos = userTodos.filter((todo) => todo.emailReminder);
+    const pushTodos = userTodos.filter((todo) => todo.pushReminder);
+
+    let emailBatchOk = !emailTodos.length;
+    let pushBatchOk = !pushTodos.length;
+
+    if (emailTodos.length > 0 && userEmail) {
+      const dueSoonRows = upcomingTodos
+        .slice(0, 6)
+        .map(
+          (todo) =>
+            `<li style="margin-bottom: 10px;"><strong>${escapeHtml(todo.title)}</strong><br />Priority: ${priorityLabel(todo.priority)}<br />When: ${todo.remindAt?.toISOString().slice(0, 16).replace('T', ' ') || 'N/A'} UTC</li>`,
+        )
+        .join('');
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+      const subject = 'Life Planner: Weekly reminder summary';
+
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto;">
+          <h2 style="margin-bottom: 8px;">Weekly Todo Reminder Summary</h2>
+          <p style="margin-bottom: 16px;">Hi ${escapeHtml(userName)}, here's your planner status for this week.</p>
+
+          <div style="border: 1px solid #d9dde6; border-radius: 8px; padding: 16px; background: #f9fbff;">
+            <p><strong>Total active reminder tasks:</strong> ${userTodos.length}</p>
+            <p><strong>Overdue reminders:</strong> ${overdueTodos.length}</p>
+            <p><strong>Due in next 7 days:</strong> ${upcomingTodos.length}</p>
+            <p><strong>High priority active tasks:</strong> ${highPriorityCount}</p>
+          </div>
+
+          ${
+            dueSoonRows
+              ? `<p style="margin-top: 16px;"><strong>Upcoming this week:</strong></p><ul style="padding-left: 18px; margin: 0;">${dueSoonRows}</ul>`
+              : '<p style="margin-top: 16px;">No reminders are scheduled for the coming 7 days.</p>'
+          }
+
+          <p style="margin-top: 16px;">
+            Open your planner: <a href="${appUrl}/admin/dashboard/todo">${appUrl}/admin/dashboard/todo</a>
+          </p>
+        </div>
+      `;
+
+      emailBatchOk = await sendEmail({
+        to: userEmail,
+        subject,
+        text:
+          `Weekly todo reminder summary\n` +
+          `Total active reminder tasks: ${userTodos.length}\n` +
+          `Overdue reminders: ${overdueTodos.length}\n` +
+          `Due in next 7 days: ${upcomingTodos.length}\n` +
+          `High priority active tasks: ${highPriorityCount}`,
+        html,
+      });
+
+      if (emailBatchOk) {
+        emailSent += 1;
+      }
+    }
+
+    if (pushTodos.length > 0) {
+      const userSubs = subscriptionsByUser.get(userId) || [];
+
+      if (userSubs.length > 0) {
+        const pushResults = await Promise.all(
+          userSubs.map((sub) =>
+            sendPushNotification(
+              {
+                endpoint: sub.endpoint,
+                keys: sub.keys as { p256dh: string; auth: string },
+              },
+              {
+                title: 'Weekly Todo Summary',
+                body: `${overdueTodos.length} overdue, ${upcomingTodos.length} due this week.`,
+                tag: `todo-weekly-summary-${userId}`,
+                url: '/admin/dashboard/todo',
+              },
+            ).then((result) => ({ ...result, subscriptionId: sub.id })),
+          ),
+        );
+
+        pushBatchOk = pushResults.some((result) => result.ok);
+
+        if (pushBatchOk) {
+          pushSent += 1;
+        }
+
+        for (const result of pushResults) {
+          if (result.expired) {
+            staleSubscriptionIds.add(result.subscriptionId);
+          }
+        }
+      }
+    }
+
+    if (emailBatchOk && pushBatchOk) {
+      notified += 1;
+    }
+  }
+
+  if (staleSubscriptionIds.size > 0) {
+    await db
+      .delete(pushSubscriptions)
+      .where(inArray(pushSubscriptions.id, Array.from(staleSubscriptionIds)));
+  }
+
+  return {
+    scanned: activeReminderTodos.length,
+    notified,
+    emailSent,
+    pushSent,
+    failedToDispatch: todosByUser.size - notified,
+  };
+}

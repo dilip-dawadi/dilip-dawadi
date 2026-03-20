@@ -2,13 +2,14 @@ name: Scheduled API Jobs
 
 on:
   schedule:
-    - cron: '0 */10 * * *' # todo reminders: every 10 hours (UTC)
-    - cron: '0 9 * * *' # finance alerts: daily at 09:00 UTC
+    - cron: '0 */4 * * *' # todo reminders: every 4 hours (UTC)
+    - cron: '0 6 * * *' # finance alerts: daily at 06:00 UTC
+    - cron: '0 8 * * 6' # weekly summaries: Saturday at 08:00 UTC
   workflow_dispatch:
 
 jobs:
   call-todo-reminders-api:
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 */10 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 */4 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -48,7 +49,7 @@ jobs:
           fi
 
   call-finance-alerts-api:
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 9 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 6 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -84,5 +85,83 @@ jobs:
 
           if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
             echo "Finance alerts API call failed."
+            exit 1
+          fi
+
+  call-weekly-todo-summary-api:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 8 * * 6'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Call weekly todo summary endpoint
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${APP_BASE_URL:-}" ]; then
+            echo "APP_BASE_URL secret is required (example: https://www.dilipdawadi.com.np)"
+            exit 1
+          fi
+
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET secret is required"
+            exit 1
+          fi
+
+          REMINDER_URL="${APP_BASE_URL%/}/api/todos/reminders/?mode=weekly-summary"
+
+          echo "Calling weekly todo summary with cron authorization..."
+          http_code=$(curl -sS -L --max-redirs 5 -o response.txt -w "%{http_code}" \
+            -X POST "$REMINDER_URL" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Accept: application/json")
+
+          echo "HTTP status: $http_code"
+          cat response.txt || true
+
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "Weekly todo summary API call failed."
+            exit 1
+          fi
+
+  call-weekly-finance-summary-api:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 8 * * 6'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Call weekly finance summary endpoint
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${APP_BASE_URL:-}" ]; then
+            echo "APP_BASE_URL secret is required (example: https://www.dilipdawadi.com.np)"
+            exit 1
+          fi
+
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET secret is required"
+            exit 1
+          fi
+
+          ALERTS_URL="${APP_BASE_URL%/}/api/finance/alerts/?mode=weekly-summary"
+
+          echo "Calling weekly finance summary with cron authorization..."
+          http_code=$(curl -sS -L --max-redirs 5 -o response.txt -w "%{http_code}" \
+            -X POST "$ALERTS_URL" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Accept: application/json")
+
+          echo "HTTP status: $http_code"
+          cat response.txt || true
+
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "Weekly finance summary API call failed."
             exit 1
           fi

@@ -31,13 +31,16 @@ async function runFinanceAlertDispatch(request: NextRequest) {
   const session = await auth();
   const isAdmin = session?.user?.role === 'admin';
   const authorizedByCron = hasValidCronSecret(request);
+  const mode = request.nextUrl.searchParams.get('mode');
 
   if (!isAdmin && !authorizedByCron) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const result = await dispatchFinanceAlerts();
+    const result = await dispatchFinanceAlerts({
+      cadence: mode === 'weekly-summary' ? 'weekly' : 'daily',
+    });
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
     console.error('Failed to dispatch finance alerts:', error);

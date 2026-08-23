@@ -202,6 +202,37 @@ export const financeReceivableReminderSchema = z.object({
   includeDueDate: z.boolean().optional(),
 });
 
+export const financeWorkLogReportSchema = z.object({
+  employerEmail: z.string().email('Invalid employer email'),
+  employerName: z.string().max(120, 'Employer name is too long').optional().or(z.literal('')),
+  reportFormat: z.enum(['invoice', 'shift-log', 'both']).default('both'),
+  invoiceNumber: z.string().max(80, 'Invoice number is too long').optional().or(z.literal('')),
+  invoiceDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid invoice date')
+    .optional()
+    .or(z.literal('')),
+  clientName: z.string().max(160, 'Client name is too long').optional().or(z.literal('')),
+  serviceDescription: z
+    .string()
+    .max(200, 'Service description is too long')
+    .optional()
+    .or(z.literal('')),
+  currencyCode: z.string().max(8, 'Currency code is too long').optional().or(z.literal('')),
+  taxLabel: z.string().max(80, 'Tax label is too long').optional().or(z.literal('')),
+  taxAmountCents: z.number().int('Tax amount must be a whole number').min(0).optional(),
+  paymentMethod: z.string().max(80, 'Payment method is too long').optional().or(z.literal('')),
+  paymentEmail: z.string().email('Invalid payment email').optional().or(z.literal('')),
+  paymentDueLabel: z
+    .string()
+    .max(120, 'Payment due label is too long')
+    .optional()
+    .or(z.literal('')),
+  periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid period start date'),
+  periodEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid period end date'),
+  message: z.string().max(1000, 'Message is too long').optional().or(z.literal('')),
+});
+
 export type AboutFormData = z.infer<typeof aboutFormSchema>;
 export type ProjectFormData = z.infer<typeof projectFormSchema>;
 export type BlogPostFormData = z.infer<typeof blogPostFormSchema>;
@@ -212,5 +243,6 @@ export type UpdateFinanceTransactionData = z.infer<typeof updateFinanceTransacti
 export type FinanceSettingsData = z.infer<typeof financeSettingsSchema>;
 export type FinanceWorkLogData = z.infer<typeof financeWorkLogSchema>;
 export type UpdateFinanceWorkLogData = z.infer<typeof updateFinanceWorkLogSchema>;
+export type FinanceWorkLogReportData = z.infer<typeof financeWorkLogReportSchema>;
 export type FinanceReceivableData = z.infer<typeof financeReceivableSchema>;
 export type UpdateFinanceReceivableData = z.infer<typeof updateFinanceReceivableSchema>;

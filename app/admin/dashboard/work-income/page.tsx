@@ -1,17 +1,16 @@
 import type { Metadata } from 'next';
 import AdminLayout from '@/components/Admin/AdminLayout';
-import WorkIncomeCalculator from '@/components/Finance/WorkIncomeCalculator';
+import CallTrackerPayrollSheet from '@/components/Finance/CallTrackerPayrollSheet';
 
 export const metadata: Metadata = {
-  title: 'Work Income Calculator',
-  description:
-    'Log worked hours and hourly rates, link with planner tasks, and sync daily income into finance tracking.',
+  title: 'Call Tracker Payroll',
+  description: 'Simple biweekly payroll tracking for hours, rates, and total pay.',
 };
 
 export default function AdminWorkIncomePage() {
   return (
-    <AdminLayout title="Work Income Calculator">
-      <WorkIncomeCalculator />
+    <AdminLayout title="Call Tracker Payroll">
+      <CallTrackerPayrollSheet />
     </AdminLayout>
   );
 }

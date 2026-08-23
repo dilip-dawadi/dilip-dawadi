@@ -10,7 +10,7 @@ function parseWorkDate(value?: string): Date {
     return new Date();
   }
 
-  const parsed = new Date(value);
+  const parsed = new Date(`${value}T12:00:00`);
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
@@ -40,10 +40,23 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const month = searchParams.get('month');
+  const startParam = searchParams.get('start');
+  const endParam = searchParams.get('end');
 
   let whereClause = eq(financeWorkLogs.userId, session.user.id);
 
-  if (month) {
+  if (startParam && endParam) {
+    const start = new Date(`${startParam}T00:00:00.000Z`);
+    const end = new Date(`${endParam}T23:59:59.999Z`);
+
+    if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && start < end) {
+      whereClause = and(
+        eq(financeWorkLogs.userId, session.user.id),
+        gte(financeWorkLogs.workDate, start),
+        lt(financeWorkLogs.workDate, end),
+      ) as typeof whereClause;
+    }
+  } else if (month) {
     const start = new Date(`${month}-01T00:00:00.000Z`);
     if (!Number.isNaN(start.getTime())) {
       const end = new Date(start);

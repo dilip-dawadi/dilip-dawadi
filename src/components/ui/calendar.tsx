@@ -176,6 +176,7 @@ function CalendarDayButton({
         'relative isolate z-10 flex h-(--cell-size) w-(--cell-size) min-w-(--cell-size) p-0 border-0 leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-[3px] group-data-[focused=true]/day:ring-ring/50 data-[range-end=true]:rounded-(--cell-radius) data-[range-end=true]:rounded-r-(--cell-radius)',
         'data-[selected-single=true]:bg-[#00000017] data-[selected-single=true]:text-fg hover:bg-bg-offset [&>span]:text-xs [&>span]:opacity-70',
         defaultClassNames.day,
+        modifiers.disabled && 'opacity-50 text-(--color-fg-light) pointer-events-none',
         className,
       )}
       {...props}

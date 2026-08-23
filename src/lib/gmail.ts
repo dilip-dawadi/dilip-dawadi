@@ -7,6 +7,11 @@ interface EmailOptions {
   subject: string;
   text: string;
   html?: string;
+  attachments?: Array<{
+    filename: string;
+    contentBase64: string;
+    contentType?: string;
+  }>;
 }
 
 /**
@@ -50,20 +55,65 @@ async function refreshAccessToken(): Promise<string> {
  * Create a raw email message for Gmail API
  */
 function createRawMessage(options: EmailOptions): string {
-  const { to, subject, text, html } = options;
+  const { to, subject, text, html, attachments = [] } = options;
   const from = process.env.GMAIL_FROM_EMAIL || process.env.GMAIL_USER_EMAIL!;
 
-  const messageParts = [
-    `From: ${from}`,
-    `To: ${to}`,
-    `Subject: ${subject}`,
-    'MIME-Version: 1.0',
-    'Content-Type: text/html; charset=utf-8',
-    '',
-    html || text,
-  ];
+  const headers = [`From: ${from}`, `To: ${to}`, `Subject: ${subject}`, 'MIME-Version: 1.0'];
 
-  const message = messageParts.join('\n');
+  let message = '';
+
+  if (attachments.length > 0) {
+    const mixedBoundary = `mixed_${Date.now()}`;
+    const altBoundary = `alt_${Date.now()}`;
+
+    message = [
+      ...headers,
+      `Content-Type: multipart/mixed; boundary="${mixedBoundary}"`,
+      '',
+      `--${mixedBoundary}`,
+      `Content-Type: multipart/alternative; boundary="${altBoundary}"`,
+      '',
+      `--${altBoundary}`,
+      'Content-Type: text/plain; charset=utf-8',
+      '',
+      text,
+      '',
+      `--${altBoundary}`,
+      'Content-Type: text/html; charset=utf-8',
+      '',
+      html || text,
+      '',
+      `--${altBoundary}--`,
+      '',
+      ...attachments.flatMap((attachment) => [
+        `--${mixedBoundary}`,
+        `Content-Type: ${attachment.contentType || 'application/octet-stream'}; name="${attachment.filename}"`,
+        'Content-Transfer-Encoding: base64',
+        `Content-Disposition: attachment; filename="${attachment.filename}"`,
+        '',
+        attachment.contentBase64,
+        '',
+      ]),
+      `--${mixedBoundary}--`,
+    ].join('\n');
+  } else {
+    message = [
+      ...headers,
+      'Content-Type: multipart/alternative; boundary="alt_message"',
+      '',
+      '--alt_message',
+      'Content-Type: text/plain; charset=utf-8',
+      '',
+      text,
+      '',
+      '--alt_message',
+      'Content-Type: text/html; charset=utf-8',
+      '',
+      html || text,
+      '',
+      '--alt_message--',
+    ].join('\n');
+  }
 
   // Base64url encode the message
   const encodedMessage = Buffer.from(message)

@@ -16,6 +16,9 @@ type DatePickerProps = {
   className?: string;
   disabled?: boolean;
   placeholder?: string;
+  min?: string;
+  max?: string;
+  onInvalidSelect?: (date: Date) => void;
 };
 
 type DatePickerWithLabelProps = DatePickerProps & {
@@ -57,9 +60,14 @@ export function DatePicker({
   className,
   disabled,
   placeholder = 'Select date',
+  min,
+  max,
+  onInvalidSelect,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
   const selectedDate = parseLocalDateValue(value);
+  const fromDate = parseLocalDateValue(min || '');
+  const toDate = parseLocalDateValue(max || '');
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -89,11 +97,21 @@ export function DatePicker({
           mode="single"
           selected={selectedDate}
           captionLayout="dropdown"
-          startMonth={new Date(2025, 0, 1)}
-          endMonth={new Date(2040, 11, 31)}
+          startMonth={fromDate || selectedDate || new Date(2025, 0, 1)}
+          endMonth={toDate || new Date(2040, 11, 31)}
           defaultMonth={selectedDate}
+          fromDate={fromDate}
+          toDate={toDate}
           onSelect={(date) => {
-            if (!date) {
+            if (!date) return;
+
+            // respect min/max bounds if provided
+            if (fromDate && date < fromDate) {
+              onInvalidSelect?.(date);
+              return;
+            }
+            if (toDate && date > toDate) {
+              onInvalidSelect?.(date);
               return;
             }
 

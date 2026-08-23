@@ -163,8 +163,8 @@ export default function AdminDashboard() {
       color: 'bg-cyan-500',
     },
     {
-      title: 'Work Income',
-      description: 'Calculate daily work income from logged hours and hourly rates',
+      title: 'Call Tracker Payroll',
+      description: 'Track call hours and payroll totals in a spreadsheet-style sheet',
       href: '/admin/dashboard/work-income',
       icon: '🧮',
       color: 'bg-teal-500',
